@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Map Pins - Contact{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Contact Us</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <form>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="message" class="form-label">Message</label>
+                    <textarea class="form-control" id="message" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Message</button>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <h3>Get in Touch</h3>
+            <p>Have questions, suggestions, or feedback? We'd love to hear from you.</p>
+            <p>Feel free to reach out using the contact form or through any of our social media channels.</p>
+            
+            <div class="mt-4">
+                <h4>Visit Us</h4>
+                <p>123 Map Street<br>Location City, LC 12345<br>Mapland</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Map Pins - Home{% endblock %}
+
+{% block content %}
+<div class="map-container">
+    <div id="map"></div>
+</div>
+
+<div class="modal fade" id="addPinModal" tabindex="-1" aria-labelledby="addPinModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPinModalLabel">Add New Pin</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if user.is_authenticated %}
+                <form id="addPinForm">
+                    <div class="mb-3">
+                        <label for="pinTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="pinTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pinDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="pinDescription" rows="3"></textarea>
+                    </div>
+                    <input type="hidden" id="pinLatitude">
+                    <input type="hidden" id="pinLongitude">
+                </form>
+                {% else %}
+                <div class="alert alert-warning">
+                    Please <a href="{% url 'mapapp:login' %}">log in</a> to add pins to the map.
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                {% if user.is_authenticated %}
+                <button type="button" class="btn btn-primary" id="savePinBtn">Save Pin</button>
+                {% else %}
+                <a href="{% url 'mapapp:login' %}" class="btn btn-primary">Login to Add Pin</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the map
+        var map = L.map('map').setView([40.0, -3.0], 5);
+        
+        // Add tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add click handler for map
+        map.on('click', function(e) {
+            // Store the clicked coordinates
+            document.getElementById('pinLatitude').value = e.latlng.lat;
+            document.getElementById('pinLongitude').value = e.latlng.lng;
+            
+            // Show the modal
+            var modal = new bootstrap.Modal(document.getElementById('addPinModal'));
+            modal.show();
+        });
+        
+        // Load existing pins from the API
+        fetch('{% url "mapapp:get_pins" %}')
+            .then(response => response.json())
+            .then(pins => {
+                pins.forEach(pin => {
+                    L.marker([pin.latitude, pin.longitude])
+                        .addTo(map)
+                        .bindPopup(`
+                            <h5>${pin.title}</h5>
+                            <p>${pin.description}</p>
+                            <small>Added by: ${pin.username}</small>
+                        `);
+                });
+            })
+            .catch(error => console.error('Error loading pins:', error));
+        
+        // Save pin button handler
+        const savePinBtn = document.getElementById('savePinBtn');
+        if (savePinBtn) {
+            savePinBtn.addEventListener('click', function() {
+                const title = document.getElementById('pinTitle').value;
+                const description = document.getElementById('pinDescription').value;
+                const latitude = document.getElementById('pinLatitude').value;
+                const longitude = document.getElementById('pinLongitude').value;
+                
+                // Send data to backend API
+                fetch('{% url "mapapp:create_pin" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: description,
+                        latitude: parseFloat(latitude),
+                        longitude: parseFloat(longitude)
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(pin => {
+                    // Add marker to map
+                    L.marker([pin.latitude, pin.longitude])
+                        .addTo(map)
+                        .bindPopup(`
+                            <h5>${pin.title}</h5>
+                            <p>${pin.description}</p>
+                            <small>Added by: ${pin.username}</small>
+                        `);
+                    
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addPinModal'));
+                    modal.hide();
+                    
+                    // Clear form
+                    document.getElementById('addPinForm').reset();
+                })
+                .catch(error => {
+                    console.error('Error saving pin:', error);
+                    alert('Failed to save pin. Please try again.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
