@@ -98,6 +98,53 @@
     .leaflet-popup-content {
         margin: 10px;
     }
+
+    /* Rating star styles */
+    .stars-container {
+        display: inline-block;
+        color: #f8d64e;
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    .stars-container .star {
+        font-size: 20px;
+        cursor: pointer;
+    }
+    
+    .stars-display .bi-star-fill,
+    .stars-display .bi-star {
+        margin-right: 2px;
+    }
+    
+    .review-count {
+        color: #666;
+        font-size: 14px;
+        margin-left: 5px;
+    }
+    
+    .review-form {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    
+    .review-list {
+        margin-top: 15px;
+    }
+    
+    .review-item {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .review-user {
+        font-weight: bold;
+    }
+    
+    .review-comment {
+        margin-top: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -124,7 +171,251 @@
             modal.show();
         });
         
-        // Save pin button handler
+        // Helper function to create star rating HTML
+        function getStarsHtml(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+            
+            let html = '';
+            // Full stars
+            for (let i = 0; i < fullStars; i++) {
+                html += '<i class="bi bi-star-fill"></i>';
+            }
+            // Half star if needed
+            if (halfStar) {
+                html += '<i class="bi bi-star-half"></i>';
+            }
+            // Empty stars
+            for (let i = 0; i < emptyStars; i++) {
+                html += '<i class="bi bi-star"></i>';
+            }
+            return html;
+        }
+        
+        // Function to create review form HTML
+        function createReviewFormHtml(pinId) {
+            return `
+                <div class="review-form">
+                    <h6>Add Your Review</h6>
+                    <div class="stars-input mb-2">
+                        <div class="stars-container" data-pin="${pinId}">
+                            <span class="star" data-value="1"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="2"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="3"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="4"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="5"><i class="bi bi-star"></i></span>
+                        </div>
+                    </div>
+                    <input type="hidden" class="rating-value" value="0">
+                    <div class="mb-2">
+                        <textarea class="form-control review-comment" placeholder="Add a comment (optional)" rows="2"></textarea>
+                    </div>
+                    <button class="btn btn-sm btn-primary submit-review" data-pin="${pinId}">Submit Review</button>
+                </div>`;
+        }
+        
+        // Function to create review list HTML
+        function createReviewListHtml(reviews) {
+            if (reviews.length === 0) {
+                return '<div class="review-list"><p>No reviews yet</p></div>';
+            }
+            
+            let html = '<div class="review-list"><h6>Reviews</h6>';
+            reviews.forEach(review => {
+                html += `
+                    <div class="review-item">
+                        <div class="stars-display">
+                            ${getStarsHtml(review.rating)}
+                            <span class="review-user">${review.username}</span>
+                        </div>
+                        ${review.comment ? `<p class="review-comment">${review.comment}</p>` : ''}
+                    </div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+        
+        // Updated function to create popup content
+        function createPopupContent(pin, reviews = []) {
+            const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+            
+            let popupContent = `
+                <div class="pin-popup">
+                    <h5 class="pin-title">${pin.title}</h5>`;
+            
+            // Add rating display
+            popupContent += `
+                <div class="stars-display">
+                    ${getStarsHtml(pin.average_rating)}
+                    <span class="review-count">(${pin.rating_count} ${pin.rating_count === 1 ? 'review' : 'reviews'})</span>
+                </div>
+                <p class="pin-description">${pin.description}</p>`;
+            
+            // Add image to popup if available
+            if (pin.image) {
+                popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
+            }
+            
+            // Add directions button
+            popupContent += `
+                <div class="mt-2 mb-2">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
+                        class="btn btn-sm btn-success text-white" target="_blank">
+                        <i class="bi bi-geo"></i> Get Directions
+                    </a>
+                    <button class="btn btn-sm btn-info text-white show-reviews" data-pin="${pin.id}">
+                        <i class="bi bi-chat-left-text"></i> Show Reviews
+                    </button>
+                </div>
+                <small class="pin-author">Added by: ${pin.username}</small>`;
+            
+            // Add review form if user is authenticated
+            if (isAuthenticated) {
+                popupContent += createReviewFormHtml(pin.id);
+            } else {
+                popupContent += `<p class="mt-2 small"><a href="{% url 'mapapp:login' %}">Login</a> to leave a review</p>`;
+            }
+            
+            popupContent += `</div>`;
+            return popupContent;
+        }
+        
+        // Update existing pins handler to include ratings
+        fetch('{% url "mapapp:get_pins" %}')
+            .then(response => response.json())
+            .then(pins => {
+                pins.forEach(pin => {
+                    const popupContent = createPopupContent(pin);
+                    
+                    const marker = L.marker([pin.latitude, pin.longitude])
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                        
+                    // Store pin data in the marker for later use
+                    marker.pin = pin;
+                });
+                
+                // Add event listeners for review functionality
+                setupReviewEventListeners(map);
+            })
+            .catch(error => console.error('Error loading pins:', error));
+            
+        // Add event listeners for the star ratings and review submission
+        function setupReviewEventListeners(map) {
+            // Use event delegation for dynamically created elements
+            document.addEventListener('click', function(e) {
+                // Handle star selection
+                if (e.target.closest('.star')) {
+                    const star = e.target.closest('.star');
+                    const starsContainer = star.parentNode;
+                    const rating = parseInt(star.dataset.value);
+                    const ratingInput = starsContainer.parentNode.nextElementSibling;
+                    
+                    // Update star display
+                    const stars = starsContainer.querySelectorAll('.star');
+                    stars.forEach((s, index) => {
+                        const starIcon = s.querySelector('i');
+                        if (index < rating) {
+                            starIcon.className = 'bi bi-star-fill';
+                        } else {
+                            starIcon.className = 'bi bi-star';
+                        }
+                    });
+                    
+                    // Store the selected rating
+                    ratingInput.value = rating;
+                }
+                
+                // Handle review submission
+                if (e.target.closest('.submit-review')) {
+                    const submitBtn = e.target.closest('.submit-review');
+                    const pinId = submitBtn.dataset.pin;
+                    const reviewForm = submitBtn.closest('.review-form');
+                    const ratingInput = reviewForm.querySelector('.rating-value');
+                    const commentInput = reviewForm.querySelector('.review-comment');
+                    
+                    const rating = parseInt(ratingInput.value);
+                    const comment = commentInput.value.trim();
+                    
+                    if (rating === 0) {
+                        alert('Please select a rating before submitting.');
+                        return;
+                    }
+                    
+                    // Submit the review
+                    fetch(`/api/pins/${pinId}/reviews/create/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            rating: rating,
+                            comment: comment
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to submit review');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Find the marker for this pin and update its popup
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                                // Update the pin data with new rating info
+                                layer.pin.average_rating = data.average_rating;
+                                layer.pin.rating_count = data.rating_count;
+                                
+                                // Update popup content
+                                const popupContent = createPopupContent(layer.pin);
+                                layer.setPopupContent(popupContent);
+                                
+                                // Show a success message
+                                alert('Thank you for your review!');
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error submitting review:', error);
+                        alert('Failed to submit review. Please try again.');
+                    });
+                }
+                
+                // Handle show reviews button
+                if (e.target.closest('.show-reviews')) {
+                    const button = e.target.closest('.show-reviews');
+                    const pinId = button.dataset.pin;
+                    
+                    fetch(`/api/pins/${pinId}/reviews/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Find the popup and append the reviews
+                            const popup = button.closest('.leaflet-popup-content');
+                            
+                            // Check if reviews section already exists, if so, remove it
+                            const existingReviews = popup.querySelector('.review-list');
+                            if (existingReviews) {
+                                existingReviews.remove();
+                                button.innerHTML = '<i class="bi bi-chat-left-text"></i> Show Reviews';
+                                return;
+                            }
+                            
+                            // Add reviews to popup
+                            const reviewListHtml = createReviewListHtml(data.reviews);
+                            popup.appendChild(document.createRange().createContextualFragment(reviewListHtml));
+                            button.innerHTML = '<i class="bi bi-chat-left-text"></i> Hide Reviews';
+                        })
+                        .catch(error => {
+                            console.error('Error loading reviews:', error);
+                        });
+                }
+            });
+        }
+        
+        // Update the create pin function to include review functionality
         const savePinBtn = document.getElementById('savePinBtn');
         if (savePinBtn) {
             savePinBtn.addEventListener('click', function() {
@@ -158,32 +449,20 @@
                     return response.json();
                 })
                 .then(pin => {
-                    // Create popup content with improved styling
-                    let popupContent = `
-                        <div class="pin-popup">
-                            <h5 class="pin-title">${pin.title}</h5>
-                            <p class="pin-description">${pin.description}</p>`;
-                        
-                    // Add image to popup if available
-                    if (pin.image) {
-                        popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
-                    }
+                    // Add default rating values
+                    pin.average_rating = 0;
+                    pin.rating_count = 0;
                     
-                    // Add directions button with WHITE TEXT
-                    popupContent += `
-                        <div class="mt-2 mb-2">
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
-                               class="btn btn-sm btn-success text-white" target="_blank">
-                               <i class="bi bi-geo"></i> Get Directions
-                            </a>
-                        </div>
-                        <small class="pin-author">Added by: ${pin.username}</small>
-                        </div>`;
+                    // Create popup content with improved styling and rating
+                    const popupContent = createPopupContent(pin);
                     
                     // Add marker to map
-                    L.marker([pin.latitude, pin.longitude])
+                    const marker = L.marker([pin.latitude, pin.longitude])
                         .addTo(map)
                         .bindPopup(popupContent);
+                    
+                    // Store pin data
+                    marker.pin = pin;
                     
                     // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addPinModal'));
@@ -198,40 +477,6 @@
                 });
             });
         }
-        
-        // Update existing pins handler to show images and directions
-        fetch('{% url "mapapp:get_pins" %}')
-            .then(response => response.json())
-            .then(pins => {
-                pins.forEach(pin => {
-                    // Create popup content with improved styling
-                    let popupContent = `
-                        <div class="pin-popup">
-                            <h5 class="pin-title">${pin.title}</h5>
-                            <p class="pin-description">${pin.description}</p>`;
-                        
-                    // Add image to popup if available
-                    if (pin.image) {
-                        popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
-                    }
-                    
-                    // Add directions button with WHITE TEXT
-                    popupContent += `
-                        <div class="mt-2 mb-2">
-                            <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
-                               class="btn btn-sm btn-success text-white" target="_blank">
-                               <i class="bi bi-geo"></i> Get Directions
-                            </a>
-                        </div>
-                        <small class="pin-author">Added by: ${pin.username}</small>
-                        </div>`;
-                    
-                    L.marker([pin.latitude, pin.longitude])
-                        .addTo(map)
-                        .bindPopup(popupContent);
-                });
-            })
-            .catch(error => console.error('Error loading pins:', error));
     });
 </script>
 {% endblock %}

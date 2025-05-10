@@ -1,11 +1,11 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from .models import MapPin
+from .models import MapPin, Review
 import json
 
 def home(request):
@@ -21,7 +21,9 @@ def get_pins(request):
         'longitude': pin.longitude,
         'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
         'username': pin.user.username if pin.user else 'Anonymous',
-        'image': pin.image.url if pin.image else None
+        'image': pin.image.url if pin.image else None,
+        'average_rating': pin.average_rating(),
+        'rating_count': pin.reviews.count()
     } for pin in pins]
     return JsonResponse(data, safe=False)
 
@@ -62,6 +64,59 @@ def create_pin(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+@login_required
+def create_review(request, pin_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            pin = get_object_or_404(MapPin, id=pin_id)
+            rating = int(data.get('rating'))
+            comment = data.get('comment', '')
+            
+            # Check rating is between 1-5
+            if not (1 <= rating <= 5):
+                return JsonResponse({'error': 'Rating must be between 1 and 5'}, status=400)
+            
+            # Create or update the review
+            review, created = Review.objects.update_or_create(
+                pin=pin,
+                user=request.user,
+                defaults={'rating': rating, 'comment': comment}
+            )
+            
+            return JsonResponse({
+                'id': review.id,
+                'rating': review.rating,
+                'comment': review.comment,
+                'created_at': review.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'username': review.user.username,
+                'pin_id': pin.id,
+                'average_rating': pin.average_rating(),
+                'rating_count': pin.reviews.count()
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+def get_reviews(request, pin_id):
+    pin = get_object_or_404(MapPin, id=pin_id)
+    reviews = Review.objects.filter(pin=pin).order_by('-created_at')
+    
+    data = [{
+        'id': review.id,
+        'rating': review.rating,
+        'comment': review.comment,
+        'created_at': review.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'username': review.user.username,
+    } for review in reviews]
+    
+    return JsonResponse({
+        'reviews': data,
+        'average_rating': pin.average_rating(),
+        'rating_count': reviews.count()
+    })
 
 def about(request):
     return render(request, 'mapapp/about.html')
