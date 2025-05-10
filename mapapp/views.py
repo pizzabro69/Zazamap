@@ -100,6 +100,26 @@ def create_review(request, pin_id):
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+@csrf_exempt
+@login_required
+def delete_pin(request, pin_id):
+    if request.method == 'DELETE':
+        try:
+            pin = get_object_or_404(MapPin, id=pin_id)
+            
+            # Check if the requesting user is the pin owner
+            if pin.user != request.user:
+                return JsonResponse({'error': 'You do not have permission to delete this pin'}, status=403)
+            
+            # Delete the pin
+            pin.delete()
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
 def get_reviews(request, pin_id):
     pin = get_object_or_404(MapPin, id=pin_id)
     reviews = Review.objects.filter(pin=pin).order_by('-created_at')
