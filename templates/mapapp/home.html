@@ -15,36 +15,42 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% if user.is_authenticated %}
                 <form id="addPinForm" enctype="multipart/form-data">
+                    {% csrf_token %}
                     <div class="mb-3">
                         <label for="pinTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="pinTitle" required>
+                        <input type="text" class="form-control" id="pinTitle" name="title" required>
                     </div>
                     <div class="mb-3">
                         <label for="pinDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="pinDescription" rows="3"></textarea>
+                        <textarea class="form-control" id="pinDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pin Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="category" id="categorySmoke" value="smoke" checked>
+                            <label class="form-check-label" for="categorySmoke">
+                                <i class="bi bi-emoji-smile"></i> Smoke Location
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="category" id="categoryDispensary" value="dispensary">
+                            <label class="form-check-label" for="categoryDispensary">
+                                <i class="bi bi-shop"></i> Dispensary
+                            </label>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="pinImage" class="form-label">Image (optional)</label>
-                        <input type="file" class="form-control" id="pinImage" accept="image/*">
+                        <input type="file" class="form-control" id="pinImage" name="image" accept="image/*">
                     </div>
-                    <input type="hidden" id="pinLatitude">
-                    <input type="hidden" id="pinLongitude">
+                    <input type="hidden" id="pinLatitude" name="latitude">
+                    <input type="hidden" id="pinLongitude" name="longitude">
                 </form>
-                {% else %}
-                <div class="alert alert-warning">
-                    Please <a href="{% url 'mapapp:login' %}">log in</a> to add pins to the map.
-                </div>
-                {% endif %}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                {% if user.is_authenticated %}
                 <button type="button" class="btn btn-primary" id="savePinBtn">Save Pin</button>
-                {% else %}
-                <a href="{% url 'mapapp:login' %}" class="btn btn-primary">Login to Add Pin</a>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -206,6 +212,25 @@
             modal.show();
         });
         
+        // Define custom icons for different pin types
+        var smokeIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        var dispensaryIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
         // Helper function to create star rating HTML
         function getStarsHtml(rating) {
             const fullStars = Math.floor(rating);
@@ -333,14 +358,20 @@
             return popupContent;
         }
         
-        // Update existing pins handler to include ratings
+        // Update the pin loading code
         fetch('{% url "mapapp:get_pins" %}')
             .then(response => response.json())
             .then(pins => {
                 pins.forEach(pin => {
                     const popupContent = createPopupContent(pin);
                     
-                    const marker = L.marker([pin.latitude, pin.longitude])
+                    // Choose icon based on category
+                    let icon = smokeIcon; // Default
+                    if (pin.category === 'dispensary') {
+                        icon = dispensaryIcon;
+                    }
+                    
+                    const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
                         .addTo(map)
                         .bindPopup(popupContent);
                         
@@ -513,6 +544,7 @@
                 const latitude = document.getElementById('pinLatitude').value;
                 const longitude = document.getElementById('pinLongitude').value;
                 const imageInput = document.getElementById('pinImage');
+                const category = document.querySelector('input[name="category"]:checked').value;
                 
                 // Create FormData object for file upload
                 const formData = new FormData();
@@ -520,6 +552,7 @@
                 formData.append('description', description);
                 formData.append('latitude', parseFloat(latitude));
                 formData.append('longitude', parseFloat(longitude));
+                formData.append('category', category);
                 
                 // Append image file if selected
                 if (imageInput.files.length > 0) {
@@ -529,7 +562,7 @@
                 // Send data to backend API
                 fetch('{% url "mapapp:create_pin" %}', {
                     method: 'POST',
-                    body: formData  // No need to set Content-Type, browser will set it with boundary
+                    body: formData
                 })
                 .then(response => {
                     if (!response.ok) {
@@ -542,11 +575,17 @@
                     pin.average_rating = 0;
                     pin.rating_count = 0;
                     
-                    // Create popup content with improved styling and rating
+                    // Create popup content
                     const popupContent = createPopupContent(pin);
                     
+                    // Choose icon based on category
+                    let icon = smokeIcon; // Default
+                    if (pin.category === 'dispensary') {
+                        icon = dispensaryIcon;
+                    }
+                    
                     // Add marker to map
-                    const marker = L.marker([pin.latitude, pin.longitude])
+                    const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
                         .addTo(map)
                         .bindPopup(popupContent);
                     

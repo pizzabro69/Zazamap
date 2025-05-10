@@ -23,7 +23,8 @@ def get_pins(request):
         'username': pin.user.username if pin.user else 'Anonymous',
         'image': pin.image.url if pin.image else None,
         'average_rating': pin.average_rating(),
-        'rating_count': pin.reviews.count()
+        'rating_count': Review.objects.filter(pin=pin).count(),
+        'category': pin.category
     } for pin in pins]
     return JsonResponse(data, safe=False)
 
@@ -31,25 +32,23 @@ def get_pins(request):
 @login_required
 def create_pin(request):
     if request.method == 'POST':
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        latitude = request.POST.get('latitude')
+        longitude = request.POST.get('longitude')
+        image = request.FILES.get('image')
+        category = request.POST.get('category', 'smoke')
+        
         try:
-            title = request.POST.get('title')
-            description = request.POST.get('description')
-            latitude = float(request.POST.get('latitude'))
-            longitude = float(request.POST.get('longitude'))
-            
-            pin = MapPin(
+            pin = MapPin.objects.create(
                 title=title,
                 description=description,
                 latitude=latitude,
                 longitude=longitude,
-                user=request.user
+                user=request.user,
+                image=image,
+                category=category
             )
-            
-            # Handle image if present
-            if 'image' in request.FILES:
-                pin.image = request.FILES['image']
-                
-            pin.save()
             
             return JsonResponse({
                 'id': pin.id,
@@ -58,11 +57,15 @@ def create_pin(request):
                 'latitude': pin.latitude,
                 'longitude': pin.longitude,
                 'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'username': pin.user.username,
-                'image': pin.image.url if pin.image else None
+                'username': request.user.username,
+                'image': pin.image.url if pin.image else None,
+                'average_rating': 0,
+                'rating_count': 0,
+                'category': pin.category
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+    
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 @csrf_exempt
