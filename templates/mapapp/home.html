@@ -51,6 +51,56 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Custom styling for map pin popups */
+    .pin-popup {
+        background-color: white;
+        padding: 5px;
+        border-radius: 4px;
+        min-width: 200px;
+    }
+    
+    .pin-title {
+        color: #1a1a1a;
+        font-weight: bold;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eaeaea;
+        padding-bottom: 5px;
+    }
+    
+    .pin-description {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+    
+    .pin-author {
+        color: #666;
+        display: block;
+        margin-top: 5px;
+        font-style: italic;
+    }
+    
+    /* Make sure popup images don't overflow */
+    .leaflet-popup-content img {
+        max-width: 100%;
+        border-radius: 3px;
+    }
+    
+    /* Override Leaflet's default popup styling */
+    .leaflet-popup-content-wrapper {
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+    }
+    
+    .leaflet-popup-content {
+        margin: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -108,17 +158,27 @@
                     return response.json();
                 })
                 .then(pin => {
-                    // Create popup content with image if available
+                    // Create popup content with improved styling
                     let popupContent = `
-                        <h5>${pin.title}</h5>
-                        <p>${pin.description}</p>`;
+                        <div class="pin-popup">
+                            <h5 class="pin-title">${pin.title}</h5>
+                            <p class="pin-description">${pin.description}</p>`;
                         
                     // Add image to popup if available
                     if (pin.image) {
                         popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
                     }
                     
-                    popupContent += `<small>Added by: ${pin.username}</small>`;
+                    // Add directions button with WHITE TEXT
+                    popupContent += `
+                        <div class="mt-2 mb-2">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
+                               class="btn btn-sm btn-success text-white" target="_blank">
+                               <i class="bi bi-geo"></i> Get Directions
+                            </a>
+                        </div>
+                        <small class="pin-author">Added by: ${pin.username}</small>
+                        </div>`;
                     
                     // Add marker to map
                     L.marker([pin.latitude, pin.longitude])
@@ -139,22 +199,32 @@
             });
         }
         
-        // Update existing pins handler to show images
+        // Update existing pins handler to show images and directions
         fetch('{% url "mapapp:get_pins" %}')
             .then(response => response.json())
             .then(pins => {
                 pins.forEach(pin => {
-                    // Create popup content with image if available
+                    // Create popup content with improved styling
                     let popupContent = `
-                        <h5>${pin.title}</h5>
-                        <p>${pin.description}</p>`;
+                        <div class="pin-popup">
+                            <h5 class="pin-title">${pin.title}</h5>
+                            <p class="pin-description">${pin.description}</p>`;
                         
                     // Add image to popup if available
                     if (pin.image) {
                         popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
                     }
                     
-                    popupContent += `<small>Added by: ${pin.username}</small>`;
+                    // Add directions button with WHITE TEXT
+                    popupContent += `
+                        <div class="mt-2 mb-2">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
+                               class="btn btn-sm btn-success text-white" target="_blank">
+                               <i class="bi bi-geo"></i> Get Directions
+                            </a>
+                        </div>
+                        <small class="pin-author">Added by: ${pin.username}</small>
+                        </div>`;
                     
                     L.marker([pin.latitude, pin.longitude])
                         .addTo(map)
