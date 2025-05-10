@@ -1,11 +1,11 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from .models import MapPin
+from .models import MapPin, Review
 import json
 
 def home(request):
@@ -20,7 +20,10 @@ def get_pins(request):
         'latitude': pin.latitude,
         'longitude': pin.longitude,
         'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-        'username': pin.user.username if pin.user else 'Anonymous'
+        'username': pin.user.username if pin.user else 'Anonymous',
+        'image': pin.image.url if pin.image else None,
+        'average_rating': pin.average_rating(),
+        'rating_count': pin.reviews.count()
     } for pin in pins]
     return JsonResponse(data, safe=False)
 
@@ -29,15 +32,25 @@ def get_pins(request):
 def create_pin(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            title = request.POST.get('title')
+            description = request.POST.get('description')
+            latitude = float(request.POST.get('latitude'))
+            longitude = float(request.POST.get('longitude'))
+            
             pin = MapPin(
-                title=data['title'],
-                description=data['description'],
-                latitude=data['latitude'],
-                longitude=data['longitude'],
+                title=title,
+                description=description,
+                latitude=latitude,
+                longitude=longitude,
                 user=request.user
             )
+            
+            # Handle image if present
+            if 'image' in request.FILES:
+                pin.image = request.FILES['image']
+                
             pin.save()
+            
             return JsonResponse({
                 'id': pin.id,
                 'title': pin.title,
@@ -45,11 +58,85 @@ def create_pin(request):
                 'latitude': pin.latitude,
                 'longitude': pin.longitude,
                 'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'username': pin.user.username
+                'username': pin.user.username,
+                'image': pin.image.url if pin.image else None
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+@login_required
+def create_review(request, pin_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            pin = get_object_or_404(MapPin, id=pin_id)
+            rating = int(data.get('rating'))
+            comment = data.get('comment', '')
+            
+            # Check rating is between 1-5
+            if not (1 <= rating <= 5):
+                return JsonResponse({'error': 'Rating must be between 1 and 5'}, status=400)
+            
+            # Create or update the review
+            review, created = Review.objects.update_or_create(
+                pin=pin,
+                user=request.user,
+                defaults={'rating': rating, 'comment': comment}
+            )
+            
+            return JsonResponse({
+                'id': review.id,
+                'rating': review.rating,
+                'comment': review.comment,
+                'created_at': review.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'username': review.user.username,
+                'pin_id': pin.id,
+                'average_rating': pin.average_rating(),
+                'rating_count': pin.reviews.count()
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+@login_required
+def delete_pin(request, pin_id):
+    if request.method == 'DELETE':
+        try:
+            pin = get_object_or_404(MapPin, id=pin_id)
+            
+            # Check if the requesting user is the pin owner
+            if pin.user != request.user:
+                return JsonResponse({'error': 'You do not have permission to delete this pin'}, status=403)
+            
+            # Delete the pin
+            pin.delete()
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+def get_reviews(request, pin_id):
+    pin = get_object_or_404(MapPin, id=pin_id)
+    reviews = Review.objects.filter(pin=pin).order_by('-created_at')
+    
+    data = [{
+        'id': review.id,
+        'rating': review.rating,
+        'comment': review.comment,
+        'created_at': review.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'username': review.user.username,
+    } for review in reviews]
+    
+    return JsonResponse({
+        'reviews': data,
+        'average_rating': pin.average_rating(),
+        'rating_count': reviews.count()
+    })
 
 def about(request):
     return render(request, 'mapapp/about.html')
