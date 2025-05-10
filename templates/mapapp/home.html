@@ -16,7 +16,7 @@
             </div>
             <div class="modal-body">
                 {% if user.is_authenticated %}
-                <form id="addPinForm">
+                <form id="addPinForm" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="pinTitle" class="form-label">Title</label>
                         <input type="text" class="form-control" id="pinTitle" required>
@@ -24,6 +24,10 @@
                     <div class="mb-3">
                         <label for="pinDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="pinDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pinImage" class="form-label">Image (optional)</label>
+                        <input type="file" class="form-control" id="pinImage" accept="image/*">
                     </div>
                     <input type="hidden" id="pinLatitude">
                     <input type="hidden" id="pinLongitude">
@@ -70,22 +74,6 @@
             modal.show();
         });
         
-        // Load existing pins from the API
-        fetch('{% url "mapapp:get_pins" %}')
-            .then(response => response.json())
-            .then(pins => {
-                pins.forEach(pin => {
-                    L.marker([pin.latitude, pin.longitude])
-                        .addTo(map)
-                        .bindPopup(`
-                            <h5>${pin.title}</h5>
-                            <p>${pin.description}</p>
-                            <small>Added by: ${pin.username}</small>
-                        `);
-                });
-            })
-            .catch(error => console.error('Error loading pins:', error));
-        
         // Save pin button handler
         const savePinBtn = document.getElementById('savePinBtn');
         if (savePinBtn) {
@@ -94,19 +82,24 @@
                 const description = document.getElementById('pinDescription').value;
                 const latitude = document.getElementById('pinLatitude').value;
                 const longitude = document.getElementById('pinLongitude').value;
+                const imageInput = document.getElementById('pinImage');
+                
+                // Create FormData object for file upload
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('description', description);
+                formData.append('latitude', parseFloat(latitude));
+                formData.append('longitude', parseFloat(longitude));
+                
+                // Append image file if selected
+                if (imageInput.files.length > 0) {
+                    formData.append('image', imageInput.files[0]);
+                }
                 
                 // Send data to backend API
                 fetch('{% url "mapapp:create_pin" %}', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        description: description,
-                        latitude: parseFloat(latitude),
-                        longitude: parseFloat(longitude)
-                    })
+                    body: formData  // No need to set Content-Type, browser will set it with boundary
                 })
                 .then(response => {
                     if (!response.ok) {
@@ -115,14 +108,22 @@
                     return response.json();
                 })
                 .then(pin => {
+                    // Create popup content with image if available
+                    let popupContent = `
+                        <h5>${pin.title}</h5>
+                        <p>${pin.description}</p>`;
+                        
+                    // Add image to popup if available
+                    if (pin.image) {
+                        popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
+                    }
+                    
+                    popupContent += `<small>Added by: ${pin.username}</small>`;
+                    
                     // Add marker to map
                     L.marker([pin.latitude, pin.longitude])
                         .addTo(map)
-                        .bindPopup(`
-                            <h5>${pin.title}</h5>
-                            <p>${pin.description}</p>
-                            <small>Added by: ${pin.username}</small>
-                        `);
+                        .bindPopup(popupContent);
                     
                     // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addPinModal'));
@@ -137,6 +138,30 @@
                 });
             });
         }
+        
+        // Update existing pins handler to show images
+        fetch('{% url "mapapp:get_pins" %}')
+            .then(response => response.json())
+            .then(pins => {
+                pins.forEach(pin => {
+                    // Create popup content with image if available
+                    let popupContent = `
+                        <h5>${pin.title}</h5>
+                        <p>${pin.description}</p>`;
+                        
+                    // Add image to popup if available
+                    if (pin.image) {
+                        popupContent += `<img src="${pin.image}" class="img-fluid mb-2" alt="${pin.title}">`;
+                    }
+                    
+                    popupContent += `<small>Added by: ${pin.username}</small>`;
+                    
+                    L.marker([pin.latitude, pin.longitude])
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                });
+            })
+            .catch(error => console.error('Error loading pins:', error));
     });
 </script>
 {% endblock %}
