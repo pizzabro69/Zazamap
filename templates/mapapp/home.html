@@ -375,6 +375,71 @@
             maxZoom: 19
         }).addTo(map);
         
+        // Setup map click handler for adding pins
+        map.on('click', function(e) {
+            // Store the clicked coordinates
+            document.getElementById('pinLatitude').value = e.latlng.lat;
+            document.getElementById('pinLongitude').value = e.latlng.lng;
+            
+            // Show the modal
+            var modal = new bootstrap.Modal(document.getElementById('addPinModal'));
+            modal.show();
+        });
+        
+        // Prevent map clicks from triggering on control elements
+        document.querySelectorAll('.leaflet-control').forEach(function(control) {
+            L.DomEvent.disableClickPropagation(control);
+        });
+        
+        // Stop propagation for any dynamically added controls
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.classList && 
+                            (node.classList.contains('leaflet-control') || 
+                             node.querySelector('.leaflet-control'))) {
+                            
+                            if (node.classList.contains('leaflet-control')) {
+                                L.DomEvent.disableClickPropagation(node);
+                            }
+                            
+                            node.querySelectorAll('.leaflet-control').forEach(function(control) {
+                                L.DomEvent.disableClickPropagation(control);
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Start observing the document for added nodes
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Additional manual fixes for specific controls
+        // For custom filter controls that may not have the leaflet-control class
+        var filterPanel = document.querySelector('.filter-control');
+        if (filterPanel) {
+            L.DomEvent.disableClickPropagation(filterPanel);
+        }
+        
+        // For favorites panel
+        var favoritesPanel = document.querySelector('.favorites-panel');
+        if (favoritesPanel) {
+            L.DomEvent.disableClickPropagation(favoritesPanel);
+        }
+        
+        // Add event listener for leaflet controls that may be added later
+        document.addEventListener('DOMNodeInserted', function(e) {
+            if (e.target.classList && 
+                (e.target.classList.contains('leaflet-control') || 
+                 e.target.classList.contains('filter-control') ||
+                 e.target.classList.contains('favorites-panel'))) {
+                
+                L.DomEvent.disableClickPropagation(e.target);
+            }
+        });
+        
         // Add geolocation button
         var locationControl = L.control({position: 'topleft'});
         locationControl.onAdd = function(map) {
@@ -614,17 +679,6 @@
         });
         {% endif %}
 
-        // Add click handler for map
-        map.on('click', function(e) {
-            // Store the clicked coordinates
-            document.getElementById('pinLatitude').value = e.latlng.lat;
-            document.getElementById('pinLongitude').value = e.latlng.lng;
-            
-            // Show the modal
-            var modal = new bootstrap.Modal(document.getElementById('addPinModal'));
-            modal.show();
-        });
-        
         // Define custom icons for different pin types
         var smokeIcon = L.icon({
             iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
