@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile_user.username }}'s Profile | Zaza Map{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Profile Card -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>{{ profile_user.username }}</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="profile-avatar mb-3">
+                        {% if profile_user.profile.avatar %}
+                            <img src="{{ profile_user.profile.avatar.url }}" class="rounded-circle" alt="Profile Picture" width="150" height="150">
+                        {% else %}
+                            <div class="default-avatar">
+                                <i class="bi bi-person-circle" style="font-size: 150px; color: #ccc;"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="profile-stats">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="stat-value">{{ pins_created }}</div>
+                                <div class="stat-label">Pins</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-value">{{ favorite_count }}</div>
+                                <div class="stat-label">Favorites</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-value">{{ review_count }}</div>
+                                <div class="stat-label">Reviews</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if is_own_profile %}
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                            <i class="bi bi-pencil"></i> Edit Profile
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- User's Pins -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="pins-tab" data-bs-toggle="tab" data-bs-target="#pins" type="button" role="tab" aria-controls="pins" aria-selected="true">
+                                <i class="bi bi-geo-alt"></i> Pins
+                            </button>
+                        </li>
+                        {% if is_own_profile %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" data-bs-target="#favorites" type="button" role="tab" aria-controls="favorites" aria-selected="false">
+                                <i class="bi bi-heart"></i> Favorites
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="profileTabsContent">
+                        <div class="tab-pane fade show active" id="pins" role="tabpanel" aria-labelledby="pins-tab">
+                            {% if pins %}
+                                <div class="row">
+                                    {% for pin in pins %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card h-100">
+                                            {% if pin.image %}
+                                            <img src="{{ pin.image.url }}" class="card-img-top" alt="{{ pin.title }}">
+                                            {% endif %}
+                                            <div class="card-body">
+                                                <h5 class="card-title">
+                                                    {{ pin.title }}
+                                                    {% if pin.category == 'dispensary' %}
+                                                    <span class="badge bg-success"><i class="bi bi-shop"></i> Dispensary</span>
+                                                    {% else %}
+                                                    <span class="badge bg-primary"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>
+                                                    {% endif %}
+                                                </h5>
+                                                <p class="card-text">{{ pin.description|truncatechars:100 }}</p>
+                                                <button class="btn btn-sm btn-outline-primary view-on-map" data-lat="{{ pin.latitude }}" data-lng="{{ pin.longitude }}" data-id="{{ pin.id }}">
+                                                    <i class="bi bi-map"></i> View on Map
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted">No pins created yet.</p>
+                            {% endif %}
+                        </div>
+                        
+                        {% if is_own_profile %}
+                        <div class="tab-pane fade" id="favorites" role="tabpanel" aria-labelledby="favorites-tab">
+                            <!-- This will be loaded via AJAX -->
+                            <div id="favorites-content">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_own_profile %}
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm" enctype="multipart/form-data" action="/profile/update/" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="profileAvatar" class="form-label">Profile Picture</label>
+                        <input type="file" class="form-control" id="profileAvatar" name="avatar" accept="image/*">
+                    </div>
+                    <div class="mb-3">
+                        <label for="profileUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="profileUsername" value="{{ profile_user.username }}" readonly>
+                        <small class="text-muted">Username cannot be changed</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="profileEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="profileEmail" name="email" value="{{ profile_user.email }}">
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // View pin on map
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.view-on-map')) {
+                const btn = e.target.closest('.view-on-map');
+                const lat = parseFloat(btn.dataset.lat);
+                const lng = parseFloat(btn.dataset.lng);
+                const id = parseInt(btn.dataset.id);
+                
+                // Navigate to map and center on pin
+                window.location.href = `{% url 'mapapp:home' %}?lat=${lat}&lng=${lng}&pin=${id}`;
+            }
+        });
+        
+        {% if is_own_profile %}
+        // Load favorites tab content
+        document.querySelector('#favorites-tab').addEventListener('click', function() {
+            const favoritesContent = document.getElementById('favorites-content');
+            
+            fetch('{% url "mapapp:get_favorites" %}')
+                .then(response => response.json())
+                .then(favorites => {
+                    if (favorites.length === 0) {
+                        favoritesContent.innerHTML = '<p class="text-muted">No favorites yet.</p>';
+                        return;
+                    }
+                    
+                    let html = '<div class="row">';
+                    favorites.forEach(pin => {
+                        html += `
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    ${pin.image ? `<img src="${pin.image}" class="card-img-top" alt="${pin.title}">` : ''}
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            ${pin.title}
+                                            ${pin.category === 'dispensary' 
+                                                ? `<span class="badge bg-success"><i class="bi bi-shop"></i> Dispensary</span>`
+                                                : `<span class="badge bg-primary"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`}
+                                        </h5>
+                                        <p class="card-text">${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}</p>
+                                        <button class="btn btn-sm btn-outline-primary view-on-map" data-lat="${pin.latitude}" data-lng="${pin.longitude}" data-id="${pin.id}">
+                                            <i class="bi bi-map"></i> View on Map
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    favoritesContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading favorites:', error);
+                    favoritesContent.innerHTML = '<div class="alert alert-danger">Failed to load favorites.</div>';
+                });
+        });
+        
+        // Save profile changes
+        document.getElementById('saveProfileBtn').addEventListener('click', function() {
+            const formData = new FormData(document.getElementById('profileForm'));
+            
+            // Use explicit URL path instead of Django URL tag
+            fetch('/profile/update/', {  // Hardcode the correct URL path
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Reload page to show updated profile
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                alert('Failed to update profile. Please try again.');
+            });
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}

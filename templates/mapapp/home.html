@@ -149,10 +149,14 @@
         background-color: white;
         border-radius: 5px;
         box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+        padding: 5px;
+        max-width: 280px;  /* Limit maximum width */
     }
     
     .leaflet-popup-content {
-        margin: 10px;
+        margin: 5px;
+        width: auto !important;  /* Override Leaflet's inline width */
+        font-size: 13px;  /* Smaller font size */
     }
 
     /* Rating star styles */
@@ -211,6 +215,10 @@
         margin: 0 auto 10px auto;
     }
 
+    .pin-image {
+        max-height: 120px;
+    }
+
     .pin-image-container {
         position: relative;
         text-align: center;
@@ -235,6 +243,11 @@
 
     .pin-popup .btn-danger:hover {
         background-color: #dc3545;
+    }
+
+    .pin-popup .btn {
+        padding: 3px 6px;
+        font-size: 12px;
     }
 
     .category-badge {
@@ -329,6 +342,30 @@
         padding: 5px 8px;
     }
 
+    @media (max-width: 768px) {
+        .review-form {
+            display: none;
+        }
+        
+        .toggle-review-form {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .stars-container .star {
+            font-size: 16px;
+        }
+        
+        /* Make amenity badges smaller */
+        .amenities-section .badge {
+            font-size: 10px;
+            padding: 3px 5px;
+            margin-right: 3px;
+            margin-bottom: 3px;
+        }
+    }
+
     /* Add this CSS to make the close button more prominent */
     .favorites-panel .close-favorites {
         color: #dc3545;
@@ -343,6 +380,17 @@
         background-color: rgba(220, 53, 69, 0.1);
         border-radius: 4px;
     }
+
+    .username-link {
+        color: #0066cc;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .username-link:hover {
+        text-decoration: underline;
+        color: #004499;
+    }
 </style>
 {% endblock %}
 
@@ -351,6 +399,32 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize the map
         var map = L.map('map').setView([40.0, -3.0], 5);
+        
+        // Check for URL parameters to center map on specific pin
+        const urlParams = new URLSearchParams(window.location.search);
+        const pinLat = urlParams.get('lat');
+        const pinLng = urlParams.get('lng');
+        const pinId = urlParams.get('pin');
+        
+        if (pinLat && pinLng) {
+            // Center the map on the specified location
+            map.setView([parseFloat(pinLat), parseFloat(pinLng)], 16);
+            
+            // After pins are loaded, find and open the popup for the specified pin
+            if (pinId) {
+                // Setup an event listener that runs after pins are loaded
+                document.addEventListener('pinsLoaded', function() {
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                            // Open the popup for this pin
+                            setTimeout(() => {
+                                layer.openPopup();
+                            }, 500); // Short delay to ensure the map is ready
+                        }
+                    });
+                });
+            }
+        }
         
         // Add tile layer (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -669,8 +743,11 @@
         
         // Function to create review form HTML
         function createReviewFormHtml(pinId) {
-            return `
-                <div class="review-form">
+            const isMobile = window.innerWidth <= 768;
+            
+            let html = `
+                ${isMobile ? '<button class="btn btn-sm btn-outline-secondary toggle-review-form w-100"><i class="bi bi-pencil"></i> Write a Review</button>' : ''}
+                <div class="review-form" ${isMobile ? 'style="display:none"' : ''}>
                     <h6>Add Your Review</h6>
                     <div class="stars-input mb-2">
                         <div class="stars-container" data-pin="${pinId}">
@@ -683,11 +760,21 @@
                     </div>
                     <input type="hidden" class="rating-value" value="0">
                     <div class="mb-2">
-                        <textarea class="form-control review-comment" placeholder="Add a comment (optional)" rows="2"></textarea>
+                        <textarea class="form-control review-comment" placeholder="Add a comment (optional)" rows="1"></textarea>
                     </div>
-                    <button class="btn btn-sm btn-primary submit-review" data-pin="${pinId}">Submit Review</button>
+                    <button class="btn btn-sm btn-primary submit-review" data-pin="${pinId}">Submit</button>
                 </div>`;
+            return html;
         }
+
+        // Add event handler for toggling review form
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.toggle-review-form')) {
+                const button = e.target.closest('.toggle-review-form');
+                const reviewForm = button.nextElementSibling;
+                reviewForm.style.display = reviewForm.style.display === 'none' ? 'block' : 'none';
+            }
+        });
         
         // Function to create review list HTML
         function createReviewListHtml(reviews) {
@@ -825,7 +912,7 @@
             
             popupContent += `
                 </div>
-                <small class="pin-author">Added by: ${pin.username}</small>`;
+                <small class="pin-author">Added by: <a href="/profile/${pin.username}/" class="username-link">${pin.username}</a></small>`;
             
             // Add review form if user is authenticated
             if (isAuthenticated) {
@@ -888,6 +975,9 @@
                 
                 // Add event listeners for review functionality
                 setupReviewEventListeners(map);
+
+                // Dispatch event when pins are loaded
+                document.dispatchEvent(new Event('pinsLoaded'));
             })
             .catch(error => console.error('Error loading pins:', error));
 

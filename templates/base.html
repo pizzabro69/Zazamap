@@ -65,6 +65,11 @@
                             <span class="nav-link">Welcome, {{ user.username }}</span>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{% url 'mapapp:my_profile' %}">
+                                <i class="bi bi-person-circle"></i> My Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{% url 'mapapp:logout' %}">Logout</a>
                         </li>
                     {% else %}

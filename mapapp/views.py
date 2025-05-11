@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from .models import MapPin, Review, Favorite
+from django.contrib import messages
+from .models import MapPin, Review, Favorite, Profile
 import json
 
 def home(request):
@@ -242,3 +243,59 @@ def register_view(request):
         return redirect('mapapp:home')
     
     return render(request, 'mapapp/register.html')
+
+@login_required
+def my_profile(request):
+    """Redirect to the user's own profile page"""
+    return redirect('mapapp:profile', username=request.user.username)
+
+def profile_view(request, username):
+    """Display a user's profile"""
+    user = get_object_or_404(User, username=username)
+    
+    # Get user statistics
+    pins_created = MapPin.objects.filter(user=user).count()
+    favorite_count = Favorite.objects.filter(user=user).count()
+    review_count = Review.objects.filter(user=user).count()
+    
+    # Get pins created by user
+    pins = MapPin.objects.filter(user=user).order_by('-created_at')
+    
+    context = {
+        'profile_user': user,
+        'pins_created': pins_created,
+        'favorite_count': favorite_count,
+        'review_count': review_count,
+        'pins': pins,
+        'is_own_profile': request.user == user if request.user.is_authenticated else False
+    }
+    
+    return render(request, 'mapapp/profile.html', context)
+
+@login_required
+def update_profile(request):
+    if request.method == 'POST':
+        try:
+            # Update email if provided
+            email = request.POST.get('email')
+            if email:
+                request.user.email = email
+                request.user.save()
+            
+            # Update profile picture if provided
+            if request.FILES.get('avatar'):
+                profile, created = Profile.objects.get_or_create(user=request.user)
+                if profile.avatar:
+                    profile.avatar.delete(save=False)  # Delete old avatar
+                profile.avatar = request.FILES.get('avatar')
+                profile.save()
+            
+            # Redirect back to profile page
+            messages.success(request, "Profile updated successfully.")
+            return redirect('mapapp:my_profile')
+        except Exception as e:
+            messages.error(request, f"Error updating profile: {str(e)}")
+            return redirect('mapapp:my_profile')
+    
+    # GET request redirects to profile
+    return redirect('mapapp:my_profile')
