@@ -68,8 +68,9 @@
     }
     
     .pin-title {
-        color: #1a1a1a;
-        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 8px;
         border-bottom: 1px solid #eaeaea;
         padding-bottom: 5px;
@@ -186,6 +187,52 @@
     .pin-popup .btn-danger:hover {
         background-color: #dc3545;
     }
+
+    .category-badge {
+        margin-left: 8px;
+        font-size: 12px;
+        vertical-align: middle;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .map-loading {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .user-location-marker {
+        background-color: #4285F4;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 {% endblock %}
 
@@ -200,6 +247,71 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(map);
+        
+        // Add geolocation button
+        var locationControl = L.control({position: 'topleft'});
+        locationControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.innerHTML = `<a href="#" title="Find my location" role="button" aria-label="Find my location" class="location-button">
+                <i class="bi bi-geo-alt"></i></a>`;
+            
+            div.onclick = function() {
+                if (navigator.geolocation) {
+                    map.locate({setView: true, maxZoom: 16});
+                    
+                    // Show loading indicator
+                    const loadingDiv = L.DomUtil.create('div', 'map-loading');
+                    loadingDiv.innerHTML = '<i class="bi bi-arrow-clockwise spinning"></i> Finding your location...';
+                    document.querySelector('.leaflet-control-container').appendChild(loadingDiv);
+                    
+                    map.on('locationfound', function(e) {
+                        // Create a marker and circle to show user's location
+                        const radius = e.accuracy / 2;
+                        
+                        // Remove existing location markers if any
+                        map.eachLayer(function(layer) {
+                            if (layer._userLocationMarker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Add user's location marker
+                        const locationMarker = L.marker(e.latlng, {
+                            icon: L.divIcon({
+                                html: '<div class="user-location-marker"><i class="bi bi-person-fill"></i></div>',
+                                className: '',
+                                iconSize: [24, 24]
+                            })
+                        }).addTo(map);
+                        locationMarker._userLocationMarker = true;
+                        
+                        // Add accuracy circle
+                        const circle = L.circle(e.latlng, {
+                            radius: radius,
+                            color: '#4285F4',
+                            fillColor: '#4285F4',
+                            fillOpacity: 0.15,
+                            weight: 2
+                        }).addTo(map);
+                        circle._userLocationMarker = true;
+                        
+                        // Remove loading indicator
+                        document.querySelector('.map-loading').remove();
+                    });
+                    
+                    map.on('locationerror', function(e) {
+                        alert("Couldn't find your location: " + e.message);
+                        document.querySelector('.map-loading').remove();
+                    });
+                } else {
+                    alert("Geolocation is not supported by your browser");
+                }
+                return false;
+            };
+            
+            return div;
+        };
+        locationControl.addTo(map);
         
         // Add click handler for map
         map.on('click', function(e) {
@@ -301,9 +413,14 @@
             const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
             const currentUsername = "{{ user.username }}";
             
+            // Create category badge with appropriate styling
+            const categoryBadge = pin.category === 'dispensary' 
+                ? `<span class="badge bg-success category-badge"><i class="bi bi-shop"></i> Dispensary</span>`
+                : `<span class="badge bg-primary category-badge"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`;
+            
             let popupContent = `
                 <div class="pin-popup">
-                    <h5 class="pin-title">${pin.title}</h5>`;
+                    <h5 class="pin-title">${pin.title} ${categoryBadge}</h5>`;
             
             // Add rating display
             popupContent += `
