@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from .models import MapPin, Review
+from .models import MapPin, Review, Favorite
 import json
 
 def home(request):
@@ -39,6 +39,14 @@ def create_pin(request):
         image = request.FILES.get('image')
         category = request.POST.get('category', 'smoke')
         
+        # Get amenities
+        has_seating = request.POST.get('has_seating') == 'on'
+        is_scenic = request.POST.get('is_scenic') == 'on'
+        is_sheltered = request.POST.get('is_sheltered') == 'on'
+        is_private = request.POST.get('is_private') == 'on'
+        is_accessible = request.POST.get('is_accessible') == 'on'
+        security_level = int(request.POST.get('security_level', 1))
+        
         try:
             pin = MapPin.objects.create(
                 title=title,
@@ -47,7 +55,13 @@ def create_pin(request):
                 longitude=longitude,
                 user=request.user,
                 image=image,
-                category=category
+                category=category,
+                has_seating=has_seating,
+                is_scenic=is_scenic,
+                is_sheltered=is_sheltered,
+                is_private=is_private,
+                is_accessible=is_accessible,
+                security_level=security_level
             )
             
             return JsonResponse({
@@ -59,9 +73,13 @@ def create_pin(request):
                 'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
                 'username': request.user.username,
                 'image': pin.image.url if pin.image else None,
-                'average_rating': 0,
-                'rating_count': 0,
-                'category': pin.category
+                'category': pin.category,
+                'has_seating': pin.has_seating,
+                'is_scenic': pin.is_scenic,
+                'is_sheltered': pin.is_sheltered,
+                'is_private': pin.is_private,
+                'is_accessible': pin.is_accessible,
+                'security_level': pin.security_level
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -140,6 +158,46 @@ def get_reviews(request, pin_id):
         'average_rating': pin.average_rating(),
         'rating_count': reviews.count()
     })
+
+@csrf_exempt
+@login_required
+def toggle_favorite(request, pin_id):
+    if request.method == 'POST':
+        try:
+            pin = MapPin.objects.get(id=pin_id)
+            favorite, created = Favorite.objects.get_or_create(user=request.user, pin=pin)
+            
+            if not created:  # If favorite already existed, remove it
+                favorite.delete()
+                return JsonResponse({'status': 'removed', 'message': 'Pin removed from favorites'})
+            
+            return JsonResponse({'status': 'added', 'message': 'Pin added to favorites'})
+            
+        except MapPin.DoesNotExist:
+            return JsonResponse({'error': 'Pin not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@login_required
+def get_favorites(request):
+    favorites = Favorite.objects.filter(user=request.user).select_related('pin')
+    data = [{
+        'id': fav.pin.id,
+        'title': fav.pin.title,
+        'description': fav.pin.description,
+        'latitude': fav.pin.latitude,
+        'longitude': fav.pin.longitude,
+        'created_at': fav.pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'username': fav.pin.user.username if fav.pin.user else 'Anonymous',
+        'image': fav.pin.image.url if fav.pin.image else None,
+        'average_rating': fav.pin.average_rating(),
+        'rating_count': Review.objects.filter(pin=fav.pin).count(),
+        'category': fav.pin.category
+    } for fav in favorites]
+    
+    return JsonResponse(data, safe=False)
 
 def about(request):
     return render(request, 'mapapp/about.html')

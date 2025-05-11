@@ -16,6 +16,14 @@ class MapPin(models.Model):
     image = models.ImageField(upload_to='pin_images/', null=True, blank=True)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='smoke')
     
+    # New amenity fields
+    has_seating = models.BooleanField(default=False)
+    is_scenic = models.BooleanField(default=False)
+    is_sheltered = models.BooleanField(default=False)
+    is_private = models.BooleanField(default=False)
+    security_level = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High')], default=1)
+    is_accessible = models.BooleanField(default=True)
+    
     def __str__(self):
         return self.title
     
@@ -41,3 +49,15 @@ class Review(models.Model):
     
     def __str__(self):
         return f"{self.user.username}'s {self.rating}-star review of {self.pin.title}"
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorites')
+    pin = models.ForeignKey(MapPin, on_delete=models.CASCADE, related_name='favorited_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'pin')
+        
+    def __str__(self):
+        return f"{self.user.username} - {self.pin.title}"
