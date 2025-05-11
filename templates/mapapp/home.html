@@ -819,13 +819,28 @@
                 </div>
                 <p class="pin-description">${pin.description}</p>`;
 
-            // Add amenities if available
-            if (pin.has_seating || pin.is_scenic || pin.is_sheltered || pin.is_private || 
-                pin.security_level > 1 || pin.is_accessible !== undefined) {
+            // Add amenities if available - add console.log to debug
+            console.log("Pin amenities:", {
+                has_seating: pin.has_seating, 
+                is_scenic: pin.is_scenic,
+                is_sheltered: pin.is_sheltered,
+                is_private: pin.is_private,
+                is_accessible: pin.is_accessible,
+                security_level: pin.security_level
+            });
+
+            // Fix the condition check to handle both boolean and string values properly
+            if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on' || 
+                pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on' || 
+                pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on' || 
+                pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on' || 
+                pin.security_level > 1 || 
+                pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on' || 
+                pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
                 
                 popupContent += `<div class="amenities-section mt-2 mb-2">`;
                 
-                // Security/discretion level
+                // Improved condition checks for each amenity
                 if (pin.security_level) {
                     const securityLabels = ['', 'Low', 'Medium', 'High'];
                     const securityColors = ['', 'text-danger', 'text-warning', 'text-success'];
@@ -836,42 +851,43 @@
                         </span>`;
                 }
                 
-                if (pin.has_seating) {
+                if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on') {
                     popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Seating available">
-                            <i class="bi bi-chair"></i> Seating
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Has seating">
+                            <i class="bi bi-chair text-success"></i> Seating
                         </span>`;
                 }
                 
-                if (pin.is_scenic) {
+                if (pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on') {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Scenic views">
-                            <i class="bi bi-image"></i> Scenic
+                            <i class="bi bi-image text-success"></i> Scenic
                         </span>`;
                 }
                 
-                if (pin.is_sheltered) {
+                if (pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on') {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Sheltered from elements">
-                            <i class="bi bi-umbrella"></i> Sheltered
+                            <i class="bi bi-umbrella text-success"></i> Sheltered
                         </span>`;
                 }
                 
-                if (pin.is_private) {
+                if (pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on') {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Private spot">
-                            <i class="bi bi-eye-slash"></i> Private
+                            <i class="bi bi-eye-slash text-success"></i> Private
                         </span>`;
                 }
                 
-                if (pin.is_accessible !== undefined) {
-                    const accessIcon = pin.is_accessible ? 'bi-universal-access' : 'bi-universal-access-circle';
-                    const accessText = pin.is_accessible ? 'Accessible' : 'Limited access';
-                    const accessColor = pin.is_accessible ? 'text-success' : 'text-danger';
-                    
+                if (pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on') {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Accessibility">
-                            <i class="bi ${accessIcon} ${accessColor}"></i> ${accessText}
+                            <i class="bi bi-universal-access text-success"></i> Accessible
+                        </span>`;
+                } else if (pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Limited accessibility">
+                            <i class="bi bi-universal-access-circle text-danger"></i> Limited access
                         </span>`;
                 }
                 
@@ -946,6 +962,7 @@
         fetch('{% url "mapapp:get_pins" %}')
             .then(response => response.json())
             .then(pins => {
+                console.log("First pin data:", pins[0]); // This will show all fields in the pin
                 pins.forEach(pin => {
                     const popupContent = createPopupContent(pin);
                     
@@ -1202,6 +1219,14 @@
                 formData.append('longitude', parseFloat(longitude));
                 formData.append('category', category);
                 
+                // Add all amenity fields explicitly - CHANGE THIS PART
+                formData.append('has_seating', document.getElementById('hasSeating').checked ? 'on' : 'off');
+                formData.append('is_scenic', document.getElementById('isScenic').checked ? 'on' : 'off');
+                formData.append('is_sheltered', document.getElementById('isSheltered').checked ? 'on' : 'off');
+                formData.append('is_private', document.getElementById('isPrivate').checked ? 'on' : 'off');
+                formData.append('is_accessible', document.getElementById('isAccessible').checked ? 'on' : 'off');
+                formData.append('security_level', document.getElementById('securityLevel').value);
+                
                 // Append image file if selected
                 if (imageInput.files.length > 0) {
                     formData.append('image', imageInput.files[0]);
@@ -1232,14 +1257,20 @@
                         icon = dispensaryIcon;
                     }
                     
-                    // Add marker to map
+                    // Add marker to map AND the appropriate cluster
                     const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
-                        .addTo(map)
                         .bindPopup(popupContent);
-                    
+
                     // Store pin data
                     marker.pin = pin;
-                    
+
+                    // Add to appropriate cluster instead of directly to map
+                    if (pin.category === 'dispensary') {
+                        dispensaryCluster.addLayer(marker);
+                    } else {
+                        smokeCluster.addLayer(marker);
+                    }
+
                     // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addPinModal'));
                     modal.hide();

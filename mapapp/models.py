@@ -2,27 +2,22 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class MapPin(models.Model):
-    CATEGORY_CHOICES = [
-        ('smoke', 'Smoke Location'),
-        ('dispensary', 'Dispensary'),
-    ]
-    
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     latitude = models.FloatField()
     longitude = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    category = models.CharField(max_length=20, choices=[('smoke', 'Smoke Spot'), ('dispensary', 'Dispensary')], default='smoke')
     image = models.ImageField(upload_to='pin_images/', null=True, blank=True)
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='smoke')
     
-    # New amenity fields
+    # Add these amenity fields
     has_seating = models.BooleanField(default=False)
     is_scenic = models.BooleanField(default=False)
     is_sheltered = models.BooleanField(default=False)
     is_private = models.BooleanField(default=False)
-    security_level = models.IntegerField(choices=[(1, 'Low'), (2, 'Medium'), (3, 'High')], default=1)
-    is_accessible = models.BooleanField(default=True)
+    is_accessible = models.BooleanField(default=True)  # Default to accessible
+    security_level = models.IntegerField(default=1, choices=[(1, 'Low'), (2, 'Medium'), (3, 'High')])
     
     def __str__(self):
         return self.title

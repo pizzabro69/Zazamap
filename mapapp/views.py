@@ -14,76 +14,81 @@ def home(request):
 
 def get_pins(request):
     pins = MapPin.objects.all()
-    data = [{
-        'id': pin.id,
-        'title': pin.title,
-        'description': pin.description,
-        'latitude': pin.latitude,
-        'longitude': pin.longitude,
-        'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-        'username': pin.user.username if pin.user else 'Anonymous',
-        'image': pin.image.url if pin.image else None,
-        'average_rating': pin.average_rating(),
-        'rating_count': Review.objects.filter(pin=pin).count(),
-        'category': pin.category
-    } for pin in pins]
-    return JsonResponse(data, safe=False)
+    pins_data = []
+    
+    for pin in pins:
+        pins_data.append({
+            'id': pin.id,
+            'title': pin.title,
+            'description': pin.description,
+            'latitude': pin.latitude,
+            'longitude': pin.longitude,
+            'category': pin.category,
+            'username': pin.user.username if pin.user else 'Anonymous',
+            'created_at': pin.created_at.isoformat(),
+            'image': pin.image.url if pin.image else None,
+            'average_rating': pin.rating_set.aggregate(Avg('rating'))['rating__avg'] or 0 if hasattr(pin, 'rating_set') else 0,
+            'rating_count': pin.rating_set.count() if hasattr(pin, 'rating_set') else 0,
+            'is_favorite': request.user.is_authenticated and pin.favorite_set.filter(user=request.user).exists() if hasattr(pin, 'favorite_set') else False,
+            
+            # Add all amenity fields
+            'has_seating': pin.has_seating,
+            'is_scenic': pin.is_scenic,
+            'is_sheltered': pin.is_sheltered,
+            'is_private': pin.is_private,
+            'is_accessible': pin.is_accessible,
+            'security_level': pin.security_level
+        })
+    
+    return JsonResponse(pins_data, safe=False)
 
 @csrf_exempt
-@login_required
 def create_pin(request):
     if request.method == 'POST':
-        title = request.POST.get('title')
-        description = request.POST.get('description')
-        latitude = request.POST.get('latitude')
-        longitude = request.POST.get('longitude')
-        image = request.FILES.get('image')
-        category = request.POST.get('category', 'smoke')
+        # Add logging to debug form data
+        print("Form data:", request.POST)
         
-        # Get amenities
-        has_seating = request.POST.get('has_seating') == 'on'
-        is_scenic = request.POST.get('is_scenic') == 'on'
-        is_sheltered = request.POST.get('is_sheltered') == 'on'
-        is_private = request.POST.get('is_private') == 'on'
-        is_accessible = request.POST.get('is_accessible') == 'on'
-        security_level = int(request.POST.get('security_level', 1))
-        
-        try:
-            pin = MapPin.objects.create(
-                title=title,
-                description=description,
-                latitude=latitude,
-                longitude=longitude,
-                user=request.user,
-                image=image,
-                category=category,
-                has_seating=has_seating,
-                is_scenic=is_scenic,
-                is_sheltered=is_sheltered,
-                is_private=is_private,
-                is_accessible=is_accessible,
-                security_level=security_level
-            )
+        pin = MapPin(
+            title=request.POST.get('title'),
+            description=request.POST.get('description', ''),
+            latitude=float(request.POST.get('latitude')),
+            longitude=float(request.POST.get('longitude')),
+            category=request.POST.get('category'),
+            user=request.user if request.user.is_authenticated else None,
             
-            return JsonResponse({
-                'id': pin.id,
-                'title': pin.title,
-                'description': pin.description,
-                'latitude': pin.latitude,
-                'longitude': pin.longitude,
-                'created_at': pin.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'username': request.user.username,
-                'image': pin.image.url if pin.image else None,
-                'category': pin.category,
-                'has_seating': pin.has_seating,
-                'is_scenic': pin.is_scenic,
-                'is_sheltered': pin.is_sheltered,
-                'is_private': pin.is_private,
-                'is_accessible': pin.is_accessible,
-                'security_level': pin.security_level
-            })
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            # Process amenity fields properly
+            has_seating=request.POST.get('has_seating') == 'on',
+            is_scenic=request.POST.get('is_scenic') == 'on',
+            is_sheltered=request.POST.get('is_sheltered') == 'on',
+            is_private=request.POST.get('is_private') == 'on',
+            is_accessible=request.POST.get('is_accessible') == 'on',
+            security_level=int(request.POST.get('security_level', 1))
+        )
+        
+        # Handle image upload
+        if 'image' in request.FILES:
+            pin.image = request.FILES['image']
+            
+        pin.save()
+        
+        # Return all pin data including amenities
+        return JsonResponse({
+            'id': pin.id,
+            'title': pin.title,
+            'description': pin.description,
+            'latitude': pin.latitude,
+            'longitude': pin.longitude,
+            'category': pin.category,
+            'username': pin.user.username if pin.user else 'Anonymous',
+            'created_at': pin.created_at.isoformat(),
+            'image': pin.image.url if pin.image else None,
+            'has_seating': pin.has_seating,
+            'is_scenic': pin.is_scenic,
+            'is_sheltered': pin.is_sheltered,
+            'is_private': pin.is_private,
+            'is_accessible': pin.is_accessible,
+            'security_level': pin.security_level
+        })
     
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
