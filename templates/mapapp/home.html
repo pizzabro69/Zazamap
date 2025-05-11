@@ -208,8 +208,8 @@
 
     .pin-popup img {
         max-width: 100%;
-        max-height: 180px; /* Constrain height */
-        object-fit: cover; /* Ensures consistent appearance */
+        max-height: 180px;
+        object-fit: cover;
         border-radius: 3px;
         display: block;
         margin: 0 auto 10px auto;
@@ -808,7 +808,42 @@
                 : `<span class="badge bg-primary category-badge"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`;
             
             let popupContent = `
-                <div class="pin-popup">
+                <div class="pin-popup">`;
+            
+            // Add the pin image if it exists
+            if (pin.image) {
+                // Debug to see what's coming in
+                console.log("Original image URL:", pin.image);
+                
+                let imageUrl = pin.image;
+                
+                // Check if the image path starts with /pin_images/ or is pin_images/
+                if (pin.image.startsWith('/pin_images/')) {
+                    // Keep the pin_images/ directory but add media prefix properly
+                    imageUrl = `/media${pin.image}`; // This gives /media/pin_images/filename.jpg
+                    console.log("Transformed to:", imageUrl);
+                }
+                // Handle paths that are just pin_images/ without leading slash
+                else if (pin.image.startsWith('pin_images/')) {
+                    imageUrl = `/media/${pin.image}`; // This gives /media/pin_images/filename.jpg
+                    console.log("Transformed to:", imageUrl);
+                }
+                // Handle other direct paths without /media/ prefix
+                else if (pin.image.startsWith('/') && !pin.image.startsWith('/media/')) {
+                    imageUrl = `/media${pin.image}`;
+                    console.log("Added media prefix:", imageUrl);
+                }
+                
+                popupContent += `
+                    <div class="pin-image-container">
+                        <img src="${imageUrl}" class="pin-image" alt="${pin.title}">
+                        <button class="view-full-image" onclick="window.open('${imageUrl}', '_blank')">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </button>
+                    </div>`;
+            }
+            
+            popupContent += `
                     <h5 class="pin-title">${pin.title} ${categoryBadge}</h5>`;
             
             // Add rating display

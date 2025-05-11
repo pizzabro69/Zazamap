@@ -26,7 +26,7 @@ def get_pins(request):
             'category': pin.category,
             'username': pin.user.username if pin.user else 'Anonymous',
             'created_at': pin.created_at.isoformat(),
-            'image': pin.image.url if pin.image else None,
+            'image': pin.image.url if pin.image else None,  # Make sure this returns the full URL
             'average_rating': pin.rating_set.aggregate(Avg('rating'))['rating__avg'] or 0 if hasattr(pin, 'rating_set') else 0,
             'rating_count': pin.rating_set.count() if hasattr(pin, 'rating_set') else 0,
             'is_favorite': request.user.is_authenticated and pin.favorite_set.filter(user=request.user).exists() if hasattr(pin, 'favorite_set') else False,
