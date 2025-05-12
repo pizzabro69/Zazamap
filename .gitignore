@@ -43,3 +43,6 @@ wheels/
 .vscode/
 *.swp
 *.swo
+
+# static files
+staticfiles/
