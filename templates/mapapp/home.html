@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Map Pins - Home{% endblock %}
+{% block title %}Zaza Map - Home{% endblock %}
 
 {% block content %}
 <div class="map-container">
@@ -15,36 +15,383 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                {% if user.is_authenticated %}
-                <form id="addPinForm">
+                <form id="addPinForm" enctype="multipart/form-data">
+                    {% csrf_token %}
                     <div class="mb-3">
                         <label for="pinTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="pinTitle" required>
+                        <input type="text" class="form-control" id="pinTitle" name="title" required>
                     </div>
                     <div class="mb-3">
                         <label for="pinDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="pinDescription" rows="3"></textarea>
+                        <textarea class="form-control" id="pinDescription" name="description" rows="3"></textarea>
                     </div>
-                    <input type="hidden" id="pinLatitude">
-                    <input type="hidden" id="pinLongitude">
+                    <div class="mb-3">
+                        <label class="form-label">Pin Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="category" id="categorySmoke" value="smoke" checked>
+                            <label class="form-check-label" for="categorySmoke">
+                                <i class="bi bi-emoji-smile"></i> Smoke Location
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="category" id="categoryDispensary" value="dispensary">
+                            <label class="form-check-label" for="categoryDispensary">
+                                <i class="bi bi-shop"></i> Dispensary
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Amenities & Features</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="hasSeating" name="has_seating">
+                                    <label class="form-check-label" for="hasSeating">
+                                        <i class="bi bi-chair"></i> Seating
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isScenic" name="is_scenic">
+                                    <label class="form-check-label" for="isScenic">
+                                        <i class="bi bi-image"></i> Scenic view
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isSheltered" name="is_sheltered">
+                                    <label class="form-check-label" for="isSheltered">
+                                        <i class="bi bi-umbrella"></i> Sheltered
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isPrivate" name="is_private">
+                                    <label class="form-check-label" for="isPrivate">
+                                        <i class="bi bi-eye-slash"></i> Private
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isAccessible" name="is_accessible" checked>
+                                    <label class="form-check-label" for="isAccessible">
+                                        <i class="bi bi-universal-access"></i> Accessible
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label for="securityLevel" class="form-label">Discretion Level</label>
+                            <select id="securityLevel" name="security_level" class="form-select form-select-sm">
+                                <option value="1">Low - Obvious smoking spot</option>
+                                <option value="2">Medium - Somewhat discreet</option>
+                                <option value="3">High - Very discreet</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="pinImage" class="form-label">Image (optional)</label>
+                        <input type="file" class="form-control" id="pinImage" name="image" accept="image/*">
+                    </div>
+                    <input type="hidden" id="pinLatitude" name="latitude">
+                    <input type="hidden" id="pinLongitude" name="longitude">
                 </form>
-                {% else %}
-                <div class="alert alert-warning">
-                    Please <a href="{% url 'mapapp:login' %}">log in</a> to add pins to the map.
-                </div>
-                {% endif %}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                {% if user.is_authenticated %}
                 <button type="button" class="btn btn-primary" id="savePinBtn">Save Pin</button>
-                {% else %}
-                <a href="{% url 'mapapp:login' %}" class="btn btn-primary">Login to Add Pin</a>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styling for map pin popups */
+    .pin-popup {
+        background-color: white;
+        padding: 5px;
+        border-radius: 4px;
+        min-width: 200px;
+    }
+    
+    .pin-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eaeaea;
+        padding-bottom: 5px;
+    }
+    
+    .pin-description {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+    
+    .pin-author {
+        color: #666;
+        display: block;
+        margin-top: 5px;
+        font-style: italic;
+    }
+    
+    /* Make sure popup images don't overflow */
+    .leaflet-popup-content img {
+        max-width: 100%;
+        border-radius: 3px;
+    }
+    
+    /* Override Leaflet's default popup styling */
+    .leaflet-popup-content-wrapper {
+        background-color: white;
+        border-radius: 5px;
+        box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+        padding: 5px;
+        max-width: 280px;  /* Limit maximum width */
+    }
+    
+    .leaflet-popup-content {
+        margin: 5px;
+        width: auto !important;  /* Override Leaflet's inline width */
+        font-size: 13px;  /* Smaller font size */
+    }
+
+    /* Rating star styles */
+    .stars-container {
+        display: inline-block;
+        color: #f8d64e;
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    .stars-container .star {
+        font-size: 20px;
+        cursor: pointer;
+    }
+    
+    .stars-display .bi-star-fill,
+    .stars-display .bi-star {
+        margin-right: 2px;
+    }
+    
+    .review-count {
+        color: #666;
+        font-size: 14px;
+        margin-left: 5px;
+    }
+    
+    .review-form {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    
+    .review-list {
+        margin-top: 15px;
+    }
+    
+    .review-item {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .review-user {
+        font-weight: bold;
+    }
+    
+    .review-comment {
+        margin-top: 5px;
+    }
+
+    .pin-popup img {
+        max-width: 100%;
+        max-height: 180px;
+        object-fit: cover;
+        border-radius: 3px;
+        display: block;
+        margin: 0 auto 10px auto;
+    }
+
+    .pin-image {
+        max-height: 120px;
+    }
+
+    .pin-image-container {
+        position: relative;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .view-full-image {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background-color: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 3px 6px;
+        font-size: 12px;
+    }
+
+    .delete-pin {
+        margin-left: 5px;
+    }
+
+    .pin-popup .btn-danger:hover {
+        background-color: #dc3545;
+    }
+
+    .pin-popup .btn {
+        padding: 3px 6px;
+        font-size: 12px;
+    }
+
+    .category-badge {
+        margin-left: 8px;
+        font-size: 12px;
+        vertical-align: middle;
+        padding: 4px 8px;
+        border-radius: 12px;
+    }
+
+    .map-loading {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .user-location-marker {
+        background-color: #4285F4;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px white;
+    }
+
+    .favorites-panel {
+        position: absolute;
+        top: 10px; /* Changed from 80px to 10px since filter is gone */
+        right: -300px;
+        width: 280px;
+        z-index: 1000;
+        transition: right 0.3s ease-in-out;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        display: none;
+    }
+
+    .favorites-panel.active {
+        right: 10px;
+        display: block;
+    }
+
+    .favorites-panel .card {
+        border: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .favorites-panel .card-header {
+        padding: 8px 12px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .favorites-panel .list-group-item {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+
+    .amenities-section {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .amenities-section .badge {
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-weight: normal;
+        padding: 5px 8px;
+    }
+
+    @media (max-width: 768px) {
+        .review-form {
+            display: none;
+        }
+        
+        .toggle-review-form {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .stars-container .star {
+            font-size: 16px;
+        }
+        
+        /* Make amenity badges smaller */
+        .amenities-section .badge {
+            font-size: 10px;
+            padding: 3px 5px;
+            margin-right: 3px;
+            margin-bottom: 3px;
+        }
+    }
+
+    /* Add this CSS to make the close button more prominent */
+    .favorites-panel .close-favorites {
+        color: #dc3545;
+        padding: 0 5px;
+        font-size: 18px;
+        opacity: 0.8;
+    }
+
+    .favorites-panel .close-favorites:hover {
+        opacity: 1;
+        color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 4px;
+    }
+
+    .username-link {
+        color: #0066cc;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .username-link:hover {
+        text-decoration: underline;
+        color: #004499;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -53,13 +400,39 @@
         // Initialize the map
         var map = L.map('map').setView([40.0, -3.0], 5);
         
+        // Check for URL parameters to center map on specific pin
+        const urlParams = new URLSearchParams(window.location.search);
+        const pinLat = urlParams.get('lat');
+        const pinLng = urlParams.get('lng');
+        const pinId = urlParams.get('pin');
+        
+        if (pinLat && pinLng) {
+            // Center the map on the specified location
+            map.setView([parseFloat(pinLat), parseFloat(pinLng)], 16);
+            
+            // After pins are loaded, find and open the popup for the specified pin
+            if (pinId) {
+                // Setup an event listener that runs after pins are loaded
+                document.addEventListener('pinsLoaded', function() {
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                            // Open the popup for this pin
+                            setTimeout(() => {
+                                layer.openPopup();
+                            }, 500); // Short delay to ensure the map is ready
+                        }
+                    });
+                });
+            }
+        }
+        
         // Add tile layer (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(map);
         
-        // Add click handler for map
+        // Setup map click handler for adding pins
         map.on('click', function(e) {
             // Store the clicked coordinates
             document.getElementById('pinLatitude').value = e.latlng.lat;
@@ -70,23 +443,799 @@
             modal.show();
         });
         
-        // Load existing pins from the API
+        // Prevent map clicks from triggering on control elements
+        document.querySelectorAll('.leaflet-control').forEach(function(control) {
+            L.DomEvent.disableClickPropagation(control);
+        });
+        
+        // Stop propagation for any dynamically added controls
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.classList && 
+                            (node.classList.contains('leaflet-control') || 
+                             node.querySelector('.leaflet-control'))) {
+                            
+                            if (node.classList.contains('leaflet-control')) {
+                                L.DomEvent.disableClickPropagation(node);
+                            }
+                            
+                            node.querySelectorAll('.leaflet-control').forEach(function(control) {
+                                L.DomEvent.disableClickPropagation(control);
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Start observing the document for added nodes
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Additional manual fixes for specific controls
+        
+        // For favorites panel
+        var favoritesPanel = document.querySelector('.favorites-panel');
+        if (favoritesPanel) {
+            L.DomEvent.disableClickPropagation(favoritesPanel);
+        }
+        
+        // Add event listener for leaflet controls that may be added later
+        document.addEventListener('DOMNodeInserted', function(e) {
+            if (e.target.classList && 
+                (e.target.classList.contains('leaflet-control') || 
+                 e.target.classList.contains('favorites-panel'))) {
+                
+                L.DomEvent.disableClickPropagation(e.target);
+            }
+        });
+        
+        // Add geolocation button
+        var locationControl = L.control({position: 'topleft'});
+        locationControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.innerHTML = `<a href="#" title="Find my location" role="button" aria-label="Find my location" class="location-button">
+                <i class="bi bi-geo-alt"></i></a>`;
+            
+            div.onclick = function() {
+                if (navigator.geolocation) {
+                    map.locate({setView: true, maxZoom: 16});
+                    
+                    // Show loading indicator
+                    const loadingDiv = L.DomUtil.create('div', 'map-loading');
+                    loadingDiv.innerHTML = '<i class="bi bi-arrow-clockwise spinning"></i> Finding your location...';
+                    document.querySelector('.leaflet-control-container').appendChild(loadingDiv);
+                    
+                    map.on('locationfound', function(e) {
+                        // Create a marker and circle to show user's location
+                        const radius = e.accuracy / 2;
+                        
+                        // Remove existing location markers if any
+                        map.eachLayer(function(layer) {
+                            if (layer._userLocationMarker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Add user's location marker
+                        const locationMarker = L.marker(e.latlng, {
+                            icon: L.divIcon({
+                                html: '<div class="user-location-marker"><i class="bi bi-person-fill"></i></div>',
+                                className: '',
+                                iconSize: [24, 24]
+                            })
+                        }).addTo(map);
+                        locationMarker._userLocationMarker = true;
+                        
+                        // Add accuracy circle
+                        const circle = L.circle(e.latlng, {
+                            radius: radius,
+                            color: '#4285F4',
+                            fillColor: '#4285F4',
+                            fillOpacity: 0.15,
+                            weight: 2
+                        }).addTo(map);
+                        circle._userLocationMarker = true;
+                        
+                        // Remove loading indicator
+                        document.querySelector('.map-loading').remove();
+                    });
+                    
+                    map.on('locationerror', function(e) {
+                        alert("Couldn't find your location: " + e.message);
+                        document.querySelector('.map-loading').remove();
+                    });
+                } else {
+                    alert("Geolocation is not supported by your browser");
+                }
+                return false;
+            };
+            
+            return div;
+        };
+        locationControl.addTo(map);
+
+        // Add favorites control
+        var favoritesControl = L.control({position: 'topright'});
+        favoritesControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.innerHTML = `<a href="#" title="My Favorites" role="button" aria-label="My Favorites" class="favorites-button">
+                <i class="bi bi-heart"></i></a>`;
+            
+            div.onclick = function() {
+                toggleFavoritesPanel();
+                return false;
+            };
+            
+            return div;
+        };
+
+        {% if user.is_authenticated %}
+        favoritesControl.addTo(map);
+
+        // Create favorites panel
+        var favoritesPanel = L.DomUtil.create('div', 'favorites-panel');
+        favoritesPanel.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-heart-fill"></i> My Favorites
+                    <button class="btn btn-sm btn-link float-end close-favorites">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="favorites-list">Loading favorites...</div>
+                </div>
+            </div>
+        `;
+        document.querySelector('.map-container').appendChild(favoritesPanel);
+
+        // Add toggle functionality
+        function toggleFavoritesPanel() {
+            if (favoritesPanel.classList.contains('active')) {
+                favoritesPanel.classList.remove('active');
+            } else {
+                favoritesPanel.classList.add('active');
+                loadFavorites();
+            }
+        }
+
+        // Close favorites panel on X click
+        document.querySelector('.close-favorites').addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent map click
+            favoritesPanel.classList.remove('active');
+        });
+
+        // Close panel when clicking on map
+        map.on('click', function() {
+            if (favoritesPanel.classList.contains('active')) {
+                favoritesPanel.classList.remove('active');
+            }
+        });
+
+        // Close panel with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && favoritesPanel.classList.contains('active')) {
+                favoritesPanel.classList.remove('active');
+            }
+        });
+
+        // Add a clear close button at the bottom of the panel
+        const closeButton = document.createElement('button');
+        closeButton.className = 'btn btn-outline-secondary w-100 mt-2';
+        closeButton.innerHTML = 'Close';
+        closeButton.onclick = function() {
+            favoritesPanel.classList.remove('active');
+        };
+        document.querySelector('#favorites-list').parentNode.appendChild(closeButton);
+
+        // Load favorites
+        function loadFavorites() {
+            fetch('{% url "mapapp:get_favorites" %}')
+                .then(response => response.json())
+                .then(favorites => {
+                    const favoritesList = document.getElementById('favorites-list');
+                    
+                    if (favorites.length === 0) {
+                        favoritesList.innerHTML = '<p>No favorites yet. Click the heart icon on pins to save them here.</p>';
+                        return;
+                    }
+                    
+                    let html = '<ul class="list-group">';
+                    favorites.forEach(pin => {
+                        const categoryIcon = pin.category === 'dispensary' 
+                            ? '<i class="bi bi-shop text-success"></i>' 
+                            : '<i class="bi bi-emoji-smile text-primary"></i>';
+                            
+                        html += `
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        ${categoryIcon} <strong>${pin.title}</strong>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary goto-favorite" data-lat="${pin.latitude}" data-lng="${pin.longitude}" data-id="${pin.id}">
+                                            <i class="bi bi-geo-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="stars-display small mt-1">
+                                    ${getStarsHtml(pin.average_rating)}
+                                    <span class="review-count">(${pin.rating_count})</span>
+                                </div>
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                    favoritesList.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading favorites:', error);
+                    document.getElementById('favorites-list').innerHTML = 
+                        '<div class="alert alert-danger">Failed to load favorites.</div>';
+                });
+        }
+
+        // Handle go to favorite button
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.goto-favorite')) {
+                const btn = e.target.closest('.goto-favorite');
+                const lat = parseFloat(btn.dataset.lat);
+                const lng = parseFloat(btn.dataset.lng);
+                const id = parseInt(btn.dataset.id);
+                
+                map.setView([lat, lng], 16);
+                
+                // Find and open the popup
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.Marker && layer.pin && layer.pin.id === id) {
+                        layer.openPopup();
+                    }
+                });
+                
+                // Close favorites panel
+                favoritesPanel.classList.remove('active');
+            }
+        });
+        {% endif %}
+
+        // Define custom icons for different pin types
+        var smokeIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        var dispensaryIcon = L.icon({
+            iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        // Helper function to create star rating HTML
+        function getStarsHtml(rating) {
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+            
+            let html = '';
+            // Full stars
+            for (let i = 0; i < fullStars; i++) {
+                html += '<i class="bi bi-star-fill"></i>';
+            }
+            // Half star if needed
+            if (halfStar) {
+                html += '<i class="bi bi-star-half"></i>';
+            }
+            // Empty stars
+            for (let i = 0; i < emptyStars; i++) {
+                html += '<i class="bi bi-star"></i>';
+            }
+            return html;
+        }
+        
+        // Function to create review form HTML
+        function createReviewFormHtml(pinId) {
+            const isMobile = window.innerWidth <= 768;
+            
+            let html = `
+                ${isMobile ? '<button class="btn btn-sm btn-outline-secondary toggle-review-form w-100"><i class="bi bi-pencil"></i> Write a Review</button>' : ''}
+                <div class="review-form" ${isMobile ? 'style="display:none"' : ''}>
+                    <h6>Add Your Review</h6>
+                    <div class="stars-input mb-2">
+                        <div class="stars-container" data-pin="${pinId}">
+                            <span class="star" data-value="1"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="2"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="3"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="4"><i class="bi bi-star"></i></span>
+                            <span class="star" data-value="5"><i class="bi bi-star"></i></span>
+                        </div>
+                    </div>
+                    <input type="hidden" class="rating-value" value="0">
+                    <div class="mb-2">
+                        <textarea class="form-control review-comment" placeholder="Add a comment (optional)" rows="1"></textarea>
+                    </div>
+                    <button class="btn btn-sm btn-primary submit-review" data-pin="${pinId}">Submit</button>
+                </div>`;
+            return html;
+        }
+
+        // Add event handler for toggling review form
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.toggle-review-form')) {
+                const button = e.target.closest('.toggle-review-form');
+                const reviewForm = button.nextElementSibling;
+                reviewForm.style.display = reviewForm.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+        
+        // Function to create review list HTML
+        function createReviewListHtml(reviews) {
+            if (reviews.length === 0) {
+                return '<div class="review-list"><p>No reviews yet</p></div>';
+            }
+            
+            let html = '<div class="review-list"><h6>Reviews</h6>';
+            reviews.forEach(review => {
+                html += `
+                    <div class="review-item">
+                        <div class="stars-display">
+                            ${getStarsHtml(review.rating)}
+                            <span class="review-user">${review.username}</span>
+                        </div>
+                        ${review.comment ? `<p class="review-comment">${review.comment}</p>` : ''}
+                    </div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+        
+        // Updated function to create popup content
+        function createPopupContent(pin, reviews = []) {
+            const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+            const currentUsername = "{{ user.username }}";
+            
+            // Create category badge with appropriate styling
+            const categoryBadge = pin.category === 'dispensary' 
+                ? `<span class="badge bg-success category-badge"><i class="bi bi-shop"></i> Dispensary</span>`
+                : `<span class="badge bg-primary category-badge"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`;
+            
+            let popupContent = `
+                <div class="pin-popup">`;
+            
+            // Add the pin image if it exists
+            if (pin.image) {
+                // Debug to see what's coming in
+                console.log("Original image URL:", pin.image);
+                
+                let imageUrl = pin.image;
+                
+                // Check if the image path starts with /pin_images/ or is pin_images/
+                if (pin.image.startsWith('/pin_images/')) {
+                    // Keep the pin_images/ directory but add media prefix properly
+                    imageUrl = `/media${pin.image}`; // This gives /media/pin_images/filename.jpg
+                    console.log("Transformed to:", imageUrl);
+                }
+                // Handle paths that are just pin_images/ without leading slash
+                else if (pin.image.startsWith('pin_images/')) {
+                    imageUrl = `/media/${pin.image}`; // This gives /media/pin_images/filename.jpg
+                    console.log("Transformed to:", imageUrl);
+                }
+                // Handle other direct paths without /media/ prefix
+                else if (pin.image.startsWith('/') && !pin.image.startsWith('/media/')) {
+                    imageUrl = `/media${pin.image}`;
+                    console.log("Added media prefix:", imageUrl);
+                }
+                
+                popupContent += `
+                    <div class="pin-image-container">
+                        <img src="${imageUrl}" class="pin-image" alt="${pin.title}">
+                        <button class="view-full-image" onclick="window.open('${imageUrl}', '_blank')">
+                            <i class="bi bi-arrows-fullscreen"></i>
+                        </button>
+                    </div>`;
+            }
+            
+            popupContent += `
+                    <h5 class="pin-title">${pin.title} ${categoryBadge}</h5>`;
+            
+            // Add rating display
+            popupContent += `
+                <div class="stars-display">
+                    ${getStarsHtml(pin.average_rating)}
+                    <span class="review-count">(${pin.rating_count} ${pin.rating_count === 1 ? 'review' : 'reviews'})</span>
+                </div>
+                <p class="pin-description">${pin.description}</p>`;
+
+            // Add amenities if available - add console.log to debug
+            console.log("Pin amenities:", {
+                has_seating: pin.has_seating, 
+                is_scenic: pin.is_scenic,
+                is_sheltered: pin.is_sheltered,
+                is_private: pin.is_private,
+                is_accessible: pin.is_accessible,
+                security_level: pin.security_level
+            });
+
+            // Fix the condition check to handle both boolean and string values properly
+            if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on' || 
+                pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on' || 
+                pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on' || 
+                pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on' || 
+                pin.security_level > 1 || 
+                pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on' || 
+                pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
+                
+                popupContent += `<div class="amenities-section mt-2 mb-2">`;
+                
+                // Improved condition checks for each amenity
+                if (pin.security_level) {
+                    const securityLabels = ['', 'Low', 'Medium', 'High'];
+                    const securityColors = ['', 'text-danger', 'text-warning', 'text-success'];
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Discretion level">
+                            <i class="bi bi-shield-lock ${securityColors[pin.security_level]}"></i> 
+                            ${securityLabels[pin.security_level]} discretion
+                        </span>`;
+                }
+                
+                if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Has seating">
+                            <i class="bi bi-chair text-success"></i> Seating
+                        </span>`;
+                }
+                
+                if (pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Scenic views">
+                            <i class="bi bi-image text-success"></i> Scenic
+                        </span>`;
+                }
+                
+                if (pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Sheltered from elements">
+                            <i class="bi bi-umbrella text-success"></i> Sheltered
+                        </span>`;
+                }
+                
+                if (pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Private spot">
+                            <i class="bi bi-eye-slash text-success"></i> Private
+                        </span>`;
+                }
+                
+                if (pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Accessibility">
+                            <i class="bi bi-universal-access text-success"></i> Accessible
+                        </span>`;
+                } else if (pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
+                    popupContent += `
+                        <span class="badge bg-light text-dark me-1 mb-1" title="Limited accessibility">
+                            <i class="bi bi-universal-access-circle text-danger"></i> Limited access
+                        </span>`;
+                }
+                
+                popupContent += `</div>`;
+            }
+            
+            // Add buttons row
+            popupContent += `
+                <div class="mt-2 mb-2">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
+                        class="btn btn-sm btn-success text-white" target="_blank">
+                        <i class="bi bi-geo"></i> Get Directions
+                    </a>
+                    <button class="btn btn-sm btn-info text-white show-reviews" data-pin="${pin.id}">
+                        <i class="bi bi-chat-left-text"></i> Show Reviews
+                    </button>`;
+            
+            // Add favorite button if user is authenticated
+            if (isAuthenticated) {
+                // Check if pin is favorited
+                const isFavorite = pin.is_favorite ? true : false;
+                const favBtnClass = isFavorite ? 'btn-danger' : 'btn-outline-danger';
+                const favIcon = isFavorite ? 'bi-heart-fill' : 'bi-heart';
+                
+                popupContent += `
+                    <button class="btn btn-sm ${favBtnClass} favorite-pin" data-pin="${pin.id}">
+                        <i class="bi ${favIcon}"></i>
+                    </button>`;
+            }
+
+            // Add delete button only if the current user is the pin owner
+            if (isAuthenticated && pin.username === currentUsername) {
+                popupContent += `
+                    <button class="btn btn-sm btn-danger text-white delete-pin" data-pin="${pin.id}">
+                        <i class="bi bi-trash"></i> Delete Pin
+                    </button>`;
+            }
+            
+            popupContent += `
+                </div>
+                <small class="pin-author">Added by: <a href="/profile/${pin.username}/" class="username-link">${pin.username}</a></small>`;
+            
+            // Add review form if user is authenticated
+            if (isAuthenticated) {
+                popupContent += createReviewFormHtml(pin.id);
+            } else {
+                popupContent += `<p class="mt-2 small"><a href="{% url 'mapapp:login' %}">Login</a> to leave a review</p>`;
+            }
+            
+            popupContent += `</div>`;
+            return popupContent;
+        }
+        
+        // Create marker clusters
+        var smokeCluster = L.markerClusterGroup({
+            disableClusteringAtZoom: 16,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            maxClusterRadius: 40
+        });
+
+        var dispensaryCluster = L.markerClusterGroup({
+            disableClusteringAtZoom: 16,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            maxClusterRadius: 40
+        });
+
+        // Update the pin loading code
         fetch('{% url "mapapp:get_pins" %}')
             .then(response => response.json())
             .then(pins => {
+                console.log("First pin data:", pins[0]); // This will show all fields in the pin
                 pins.forEach(pin => {
-                    L.marker([pin.latitude, pin.longitude])
-                        .addTo(map)
-                        .bindPopup(`
-                            <h5>${pin.title}</h5>
-                            <p>${pin.description}</p>
-                            <small>Added by: ${pin.username}</small>
-                        `);
+                    const popupContent = createPopupContent(pin);
+                    
+                    // Choose icon based on category
+                    let icon = smokeIcon; // Default
+                    if (pin.category === 'dispensary') {
+                        icon = dispensaryIcon;
+                    }
+                    
+                    const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
+                        .bindPopup(popupContent);
+                        
+                    // Store pin data in the marker for later use
+                    marker.pin = pin;
+                    
+                    // Add to appropriate cluster
+                    if (pin.category === 'dispensary') {
+                        dispensaryCluster.addLayer(marker);
+                    } else {
+                        smokeCluster.addLayer(marker);
+                    }
                 });
+                
+                // Add clusters to map
+                map.addLayer(smokeCluster);
+                map.addLayer(dispensaryCluster);
+                
+                // Add event listeners for review functionality
+                setupReviewEventListeners(map);
+
+                // Dispatch event when pins are loaded
+                document.dispatchEvent(new Event('pinsLoaded'));
             })
             .catch(error => console.error('Error loading pins:', error));
-        
-        // Save pin button handler
+
+        // Add layer control for toggling
+        var overlays = {
+            "Smoke Spots": smokeCluster,
+            "Dispensaries": dispensaryCluster
+        };
+
+        L.control.layers(null, overlays).addTo(map);
+            
+        // Add event listeners for the star ratings and review submission
+        function setupReviewEventListeners(map) {
+            // Use event delegation for dynamically created elements
+            document.addEventListener('click', function(e) {
+                // Handle star selection
+                if (e.target.closest('.star')) {
+                    const star = e.target.closest('.star');
+                    const starsContainer = star.parentNode;
+                    const rating = parseInt(star.dataset.value);
+                    const ratingInput = starsContainer.parentNode.nextElementSibling;
+                    
+                    // Update star display
+                    const stars = starsContainer.querySelectorAll('.star');
+                    stars.forEach((s, index) => {
+                        const starIcon = s.querySelector('i');
+                        if (index < rating) {
+                            starIcon.className = 'bi bi-star-fill';
+                        } else {
+                            starIcon.className = 'bi bi-star';
+                        }
+                    });
+                    
+                    // Store the selected rating
+                    ratingInput.value = rating;
+                }
+                
+                // Handle review submission
+                if (e.target.closest('.submit-review')) {
+                    const submitBtn = e.target.closest('.submit-review');
+                    const pinId = submitBtn.dataset.pin;
+                    const reviewForm = submitBtn.closest('.review-form');
+                    const ratingInput = reviewForm.querySelector('.rating-value');
+                    const commentInput = reviewForm.querySelector('.review-comment');
+                    
+                    const rating = parseInt(ratingInput.value);
+                    const comment = commentInput.value.trim();
+                    
+                    if (rating === 0) {
+                        alert('Please select a rating before submitting.');
+                        return;
+                    }
+                    
+                    // Submit the review
+                    fetch(`/api/pins/${pinId}/reviews/create/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            rating: rating,
+                            comment: comment
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to submit review');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Find the marker for this pin and update its popup
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                                // Update the pin data with new rating info
+                                layer.pin.average_rating = data.average_rating;
+                                layer.pin.rating_count = data.rating_count;
+                                
+                                // Update popup content
+                                const popupContent = createPopupContent(layer.pin);
+                                layer.setPopupContent(popupContent);
+                                
+                                // Show a success message
+                                alert('Thank you for your review!');
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error submitting review:', error);
+                        alert('Failed to submit review. Please try again.');
+                    });
+                }
+                
+                // Handle show reviews button
+                if (e.target.closest('.show-reviews')) {
+                    const button = e.target.closest('.show-reviews');
+                    const pinId = button.dataset.pin;
+                    
+                    fetch(`/api/pins/${pinId}/reviews/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Find the popup and append the reviews
+                            const popup = button.closest('.leaflet-popup-content');
+                            
+                            // Check if reviews section already exists, if so, remove it
+                            const existingReviews = popup.querySelector('.review-list');
+                            if (existingReviews) {
+                                existingReviews.remove();
+                                button.innerHTML = '<i class="bi bi-chat-left-text"></i> Show Reviews';
+                                return;
+                            }
+                            
+                            // Add reviews to popup
+                            const reviewListHtml = createReviewListHtml(data.reviews);
+                            popup.appendChild(document.createRange().createContextualFragment(reviewListHtml));
+                            button.innerHTML = '<i class="bi bi-chat-left-text"></i> Hide Reviews';
+                        })
+                        .catch(error => {
+                            console.error('Error loading reviews:', error);
+                        });
+                }
+                
+                // Handle delete pin button
+                if (e.target.closest('.delete-pin')) {
+                    const button = e.target.closest('.delete-pin');
+                    const pinId = button.dataset.pin;
+                    
+                    // Confirm before deleting
+                    if (confirm('Are you sure you want to delete this pin? This action cannot be undone.')) {
+                        fetch(`/api/pins/${pinId}/delete/`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to delete pin');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Remove the pin from the map
+                            map.eachLayer(layer => {
+                                if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                                    map.removeLayer(layer);
+                                    
+                                    // Show success message
+                                    alert('Pin deleted successfully');
+                                }
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error deleting pin:', error);
+                            alert('Failed to delete pin. Please try again.');
+                        });
+                    }
+                }
+
+                // Handle favorite pin button
+                if (e.target.closest('.favorite-pin')) {
+                    const button = e.target.closest('.favorite-pin');
+                    const pinId = button.dataset.pin;
+                    
+                    fetch(`/api/pins/${pinId}/favorite/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to toggle favorite');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Update button appearance
+                        const icon = button.querySelector('i');
+                        if (data.status === 'added') {
+                            button.classList.remove('btn-outline-danger');
+                            button.classList.add('btn-danger');
+                            icon.className = 'bi bi-heart-fill';
+                        } else {
+                            button.classList.remove('btn-danger');
+                            button.classList.add('btn-outline-danger');
+                            icon.className = 'bi bi-heart';
+                        }
+                        
+                        // Store favorite status in pin object
+                        map.eachLayer(function(layer) {
+                            if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                                layer.pin.is_favorite = (data.status === 'added');
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error toggling favorite:', error);
+                        alert('Failed to update favorite. Please try again.');
+                    });
+                }
+            });
+        }
+
+        // Update the create pin function to include review functionality
         const savePinBtn = document.getElementById('savePinBtn');
         if (savePinBtn) {
             savePinBtn.addEventListener('click', function() {
@@ -94,19 +1243,34 @@
                 const description = document.getElementById('pinDescription').value;
                 const latitude = document.getElementById('pinLatitude').value;
                 const longitude = document.getElementById('pinLongitude').value;
+                const imageInput = document.getElementById('pinImage');
+                const category = document.querySelector('input[name="category"]:checked').value;
+                
+                // Create FormData object for file upload
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('description', description);
+                formData.append('latitude', parseFloat(latitude));
+                formData.append('longitude', parseFloat(longitude));
+                formData.append('category', category);
+                
+                // Add all amenity fields explicitly - CHANGE THIS PART
+                formData.append('has_seating', document.getElementById('hasSeating').checked ? 'on' : 'off');
+                formData.append('is_scenic', document.getElementById('isScenic').checked ? 'on' : 'off');
+                formData.append('is_sheltered', document.getElementById('isSheltered').checked ? 'on' : 'off');
+                formData.append('is_private', document.getElementById('isPrivate').checked ? 'on' : 'off');
+                formData.append('is_accessible', document.getElementById('isAccessible').checked ? 'on' : 'off');
+                formData.append('security_level', document.getElementById('securityLevel').value);
+                
+                // Append image file if selected
+                if (imageInput.files.length > 0) {
+                    formData.append('image', imageInput.files[0]);
+                }
                 
                 // Send data to backend API
                 fetch('{% url "mapapp:create_pin" %}', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        title: title,
-                        description: description,
-                        latitude: parseFloat(latitude),
-                        longitude: parseFloat(longitude)
-                    })
+                    body: formData
                 })
                 .then(response => {
                     if (!response.ok) {
@@ -115,15 +1279,33 @@
                     return response.json();
                 })
                 .then(pin => {
-                    // Add marker to map
-                    L.marker([pin.latitude, pin.longitude])
-                        .addTo(map)
-                        .bindPopup(`
-                            <h5>${pin.title}</h5>
-                            <p>${pin.description}</p>
-                            <small>Added by: ${pin.username}</small>
-                        `);
+                    // Add default rating values
+                    pin.average_rating = 0;
+                    pin.rating_count = 0;
                     
+                    // Create popup content
+                    const popupContent = createPopupContent(pin);
+                    
+                    // Choose icon based on category
+                    let icon = smokeIcon; // Default
+                    if (pin.category === 'dispensary') {
+                        icon = dispensaryIcon;
+                    }
+                    
+                    // Add marker to map AND the appropriate cluster
+                    const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
+                        .bindPopup(popupContent);
+
+                    // Store pin data
+                    marker.pin = pin;
+
+                    // Add to appropriate cluster instead of directly to map
+                    if (pin.category === 'dispensary') {
+                        dispensaryCluster.addLayer(marker);
+                    } else {
+                        smokeCluster.addLayer(marker);
+                    }
+
                     // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addPinModal'));
                     modal.hide();
