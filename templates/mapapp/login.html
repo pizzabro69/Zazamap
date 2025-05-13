@@ -1,36 +1,53 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Zaza Map - Login{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: url("{% static 'img/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-center">Login</h3>
+            <div class="card" style="background-color: #284435; color: #fff; border: none; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+                <div class="card-header" style="background-color: #1c3326; border-bottom: 1px solid #365445; padding: 1.5rem 1rem;">
+                    <h3 class="text-center">Login to Zaza Map</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="padding: 2rem;">
                     {% if error_message %}
                     <div class="alert alert-danger">{{ error_message }}</div>
                     {% endif %}
                     <form method="post" action="{% url 'mapapp:login' %}">
                         {% csrf_token %}
                         <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
+                            <label for="username" class="form-label" style="color: #cbff78; font-weight: 500;">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required 
+                                  style="background-color: #365445; border: 1px solid #548f6f; color: #fff;">
                         </div>
                         <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <label for="password" class="form-label" style="color: #cbff78; font-weight: 500;">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                  style="background-color: #365445; border: 1px solid #548f6f; color: #fff;">
                         </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Login</button>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn" 
+                                   style="background-color: #99e81a; border-color: #99e81a; color: #1c3326; font-weight: 500;">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                            </button>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer text-center">
-                    <p>Don't have an account? <a href="{% url 'mapapp:register' %}">Register</a></p>
+                <div class="card-footer text-center" style="background-color: #1c3326; border-top: 1px solid #365445;">
+                    <p>Don't have an account? <a href="{% url 'mapapp:register' %}" style="color: #cbff78; text-decoration: none;">Register</a></p>
                 </div>
             </div>
         </div>

@@ -1,37 +1,113 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Zaza Map - Contact{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <h1>Contact Us</h1>
+{% block extra_css %}
+<style>
+    body {
+        background: url("{% static 'img/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
     
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <form>
-                <div class="mb-3">
-                    <label for="name" class="form-label">Name</label>
-                    <input type="text" class="form-control" id="name" required>
+    .content-card {
+        background-color: #284435;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        padding: 2rem;
+        border-radius: 8px;
+    }
+    
+    .content-card h1, .content-card h3, .content-card h4 {
+        color: #cbff78;
+    }
+    
+    .form-label {
+        color: #cbff78;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        background-color: #365445;
+        border: 1px solid #548f6f;
+        color: #fff;
+    }
+    
+    .form-control:focus {
+        background-color: #365445;
+        color: #fff;
+        border-color: #99e81a;
+        box-shadow: 0 0 0 0.25rem rgba(203, 255, 120, 0.25);
+    }
+    
+    .submit-btn {
+        background-color: #99e81a;
+        border-color: #99e81a;
+        color: #1c3326;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .submit-btn:hover {
+        background-color: #cbff78;
+        border-color: #cbff78;
+        color: #0a1114;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="content-card">
+        <h1>Contact Us</h1>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <form>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message</label>
+                        <textarea class="form-control" id="message" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn submit-btn">
+                        <i class="bi bi-send me-2"></i>Send Message
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-6">
+                <h3>Get in Touch</h3>
+                <p>Have questions, suggestions, or feedback? We'd love to hear from you.</p>
+                <p>Feel free to reach out using the contact form or through any of our social media channels.</p>
+                
+                <div class="mt-4">
+                    <h4>Visit Us</h4>
+                    <p>123 Map Street<br>Location City, LC 12345<br>Mapland</p>
                 </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" required>
+                
+                <div class="mt-4">
+                    <h4>Follow Us</h4>
+                    <div class="d-flex gap-3 mt-2">
+                        <a href="#" class="text-decoration-none" style="color: #99e81a; font-size: 1.5rem;">
+                            <i class="bi bi-instagram"></i>
+                        </a>
+                        <a href="#" class="text-decoration-none" style="color: #99e81a; font-size: 1.5rem;">
+                            <i class="bi bi-twitter"></i>
+                        </a>
+                        <a href="#" class="text-decoration-none" style="color: #99e81a; font-size: 1.5rem;">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="message" class="form-label">Message</label>
-                    <textarea class="form-control" id="message" rows="5" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary">Send Message</button>
-            </form>
-        </div>
-        <div class="col-md-6">
-            <h3>Get in Touch</h3>
-            <p>Have questions, suggestions, or feedback? We'd love to hear from you.</p>
-            <p>Feel free to reach out using the contact form or through any of our social media channels.</p>
-            
-            <div class="mt-4">
-                <h4>Visit Us</h4>
-                <p>123 Map Street<br>Location City, LC 12345<br>Mapland</p>
             </div>
         </div>
     </div>
