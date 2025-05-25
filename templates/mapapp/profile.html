@@ -87,6 +87,12 @@
                             <i class="bi bi-pencil"></i> Edit Profile
                         </button>
                     </div>
+                    {% else %}
+                    <div class="mt-3">
+                        <a href="{% url 'mapapp:new_conversation' username=profile_user.username %}" class="btn" style="border-color: #99e81a; color: #99e81a; background-color: transparent;">
+                            <i class="bi bi-chat-dots"></i> Send Message
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
