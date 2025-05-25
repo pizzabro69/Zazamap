@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Chat with {{ other_user.username }} | Zaza Map{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: url("{% static 'img/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    
+    .content-card {
+        background-color: #284435;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .chat-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        background-color: #1c3326;
+        border-bottom: 1px solid #365445;
+    }
+    
+    .chat-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
+    }
+    
+    .chat-default-avatar {
+        color: #99e81a;
+        font-size: 40px;
+        line-height: 1;
+    }
+    
+    .chat-username {
+        color: #cbff78;
+        font-weight: 500;
+        font-size: 18px;
+    }
+    
+    .back-button {
+        margin-right: 12px;
+        color: #a1b59e;
+        transition: color 0.2s;
+    }
+    
+    .back-button:hover {
+        color: #cbff78;
+    }
+    
+    .message-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .message {
+        max-width: 75%;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        word-break: break-word;
+        position: relative;
+    }
+    
+    .message-sent {
+        background-color: #548f6f;
+        align-self: flex-end;
+        border-bottom-right-radius: 0;
+    }
+    
+    .message-received {
+        background-color: #365445;
+        align-self: flex-start;
+        border-bottom-left-radius: 0;
+    }
+    
+    .message-time {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 4px;
+    }
+    
+    .message-input-container {
+        padding: 16px;
+        border-top: 1px solid #365445;
+        display: flex;
+    }
+    
+    .message-input {
+        flex-grow: 1;
+        resize: none;
+        background-color: #365445;
+        border: none;
+        color: #fff;
+        border-radius: 20px;
+        padding: 10px 16px;
+        min-height: 44px;
+        max-height: 120px;
+    }
+    
+    .message-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(153, 232, 26, 0.4);
+    }
+    
+    .send-button {
+        background-color: #99e81a;
+        color: #1c3326;
+        border: none;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        margin-left: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+    
+    .send-button:hover {
+        background-color: #cbff78;
+    }
+    
+    .send-button:disabled {
+        background-color: #365445;
+        color: #a1b59e;
+        cursor: not-allowed;
+    }
+    
+    .empty-conversation {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #a1b59e;
+        text-align: center;
+        padding: 16px;
+    }
+    
+    .empty-conversation i {
+        font-size: 64px;
+        margin-bottom: 16px;
+        color: #365445;
+    }
+
+    .message.error {
+        background-color: rgba(220, 53, 69, 0.5);
+    }
+    
+    .error-text {
+        font-size: 11px;
+        color: #ffcccc;
+        margin-top: 4px;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="content-card">
+        <div class="chat-header">
+            <a href="{% url 'mapapp:inbox' %}" class="back-button">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            
+            {% if other_user.profile.avatar %}
+                <img src="{{ other_user.profile.avatar.url }}" alt="{{ other_user.username }}" class="chat-avatar">
+            {% else %}
+                <div class="chat-default-avatar">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+            {% endif %}
+            
+            <div class="chat-username">{{ other_user.username }}</div>
+        </div>
+        
+        {% if messages %}
+        <div class="message-list" id="messageList">
+            {% for message in messages %}
+                <div class="message {% if message.sender == request.user %}message-sent{% else %}message-received{% endif %}" data-id="{{ message.id }}">
+                    {{ message.content }}
+                    <div class="message-time">{{ message.created_at|date:"M d, g:i A" }}</div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-conversation">
+            <i class="bi bi-chat-right-dots"></i>
+            <h5 style="color: #cbff78;">No messages yet</h5>
+            <p>Send a message to start the conversation.</p>
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'mapapp:send_message' conversation_id=conversation.id %}" id="messageForm" class="message-input-container">
+            {% csrf_token %}
+            <textarea name="content" id="messageInput" class="message-input" placeholder="Type a message..." rows="1" required></textarea>
+            <button type="submit" id="sendButton" class="send-button" disabled>
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageList = document.getElementById('messageList');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const conversationId = {{ conversation.id }};
+        let lastMessageId = {% if messages %}{{ messages.last.id|default:0 }}{% else %}0{% endif %};
+        
+        // Scroll to bottom of message list
+        if (messageList) {
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+        
+        // Enable/disable send button based on input
+        messageInput.addEventListener('input', function() {
+            sendButton.disabled = !this.value.trim();
+            
+            // Auto-expand textarea
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        
+        // Auto-focus message input
+        messageInput.focus();
+        
+        // Submit form with Ajax
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const messageContent = messageInput.value.trim();
+            
+            if (!messageContent) {
+                return; // Don't send empty messages
+            }
+            
+            // Clear input immediately for better UX
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            sendButton.disabled = true;
+            
+            // Create a unique ID for this message to track it
+            const tempId = 'temp-' + Date.now();
+            
+            // Get or create message list if it doesn't exist yet
+            let msgList = document.getElementById('messageList');
+            if (!msgList) {
+                // First message - remove empty state and create message list
+                const emptyState = document.querySelector('.empty-conversation');
+                if (emptyState) emptyState.remove();
+                
+                msgList = document.createElement('div');
+                msgList.id = 'messageList';
+                msgList.className = 'message-list';
+                document.querySelector('.content-card').insertBefore(
+                    msgList, 
+                    document.querySelector('.message-input-container')
+                );
+            }
+            
+            // Send to server first, don't show temporary message
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Create a confirmed message element
+                    const confirmedDiv = document.createElement('div');
+                    confirmedDiv.className = 'message message-sent';
+                    confirmedDiv.dataset.id = data.message_id;
+                    confirmedDiv.innerHTML = `
+                        ${messageContent}
+                        <div class="message-time">${data.created_at}</div>
+                    `;
+                    
+                    // Add the confirmed message to the list
+                    if (msgList) {
+                        msgList.appendChild(confirmedDiv);
+                        msgList.scrollTop = msgList.scrollHeight;
+                    }
+                    
+                    // Update last message ID to prevent duplicate messages from checkForNewMessages
+                    lastMessageId = data.message_id;
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+            });
+        });
+        
+        // Function to check for new messages
+        function checkForNewMessages() {
+            if (!conversationId) return;
+            
+            fetch(`/messages/conversation/${conversationId}/new-messages/?since=${lastMessageId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(message => {
+                            // Skip messages we've already displayed
+                            if (document.querySelector(`.message[data-id="${message.id}"]`)) {
+                                return;
+                            }
+                            
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = message.is_own ? 'message message-sent' : 'message message-received';
+                            messageDiv.dataset.id = message.id;
+                            messageDiv.innerHTML = `
+                                ${message.content}
+                                <div class="message-time">${message.created_at}</div>
+                            `;
+                            
+                            if (messageList) {
+                                messageList.appendChild(messageDiv);
+                                messageList.scrollTop = messageList.scrollHeight;
+                            }
+                            
+                            // Update last message ID
+                            if (message.id > lastMessageId) {
+                                lastMessageId = message.id;
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking for new messages:', error);
+                });
+        }
+        
+        // Check for new messages every 3 seconds
+        const messageInterval = setInterval(checkForNewMessages, 3000);
+        
+        // Clear interval when leaving the page
+        window.addEventListener('beforeunload', function() {
+            clearInterval(messageInterval);
+        });
+    });
+</script>
+{% endblock %}

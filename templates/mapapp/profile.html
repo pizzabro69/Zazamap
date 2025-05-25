@@ -1,23 +1,65 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ profile_user.username }}'s Profile | Zaza Map{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: url("{% static 'img/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    
+    /* Fix tab styling to prevent overlap */
+    .nav-tabs {
+        border-bottom: none;
+    }
+    
+    .nav-tabs .nav-item {
+        margin-right: 5px;
+    }
+    
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: 4px 4px 0 0;
+        padding: 0.5rem 1.5rem;
+        margin-bottom: -1px;
+        background-color: #1c3326;
+        color: #fff;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: #284435;
+        color: #cbff78;
+        border: none;
+    }
+    
+    .nav-tabs .nav-link:hover:not(.active) {
+        background-color: #2a3e32;
+        color: #cbff78;
+        border: none;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <!-- Profile Card -->
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4>{{ profile_user.username }}</h4>
+            <div class="card" style="background-color: #284435; color: #fff; border: none; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+                <div class="card-header" style="background-color: #1c3326; border-bottom: 1px solid #365445; padding: 1rem;">
+                    <h4 style="color: #cbff78; margin-bottom: 0;">{{ profile_user.username }}</h4>
                 </div>
-                <div class="card-body text-center">
+                <div class="card-body text-center" style="padding: 1.5rem;">
                     <div class="profile-avatar mb-3">
                         {% if profile_user.profile.avatar %}
                             <img src="{{ profile_user.profile.avatar.url }}" class="rounded-circle" alt="Profile Picture" width="150" height="150">
                         {% else %}
                             <div class="default-avatar">
-                                <i class="bi bi-person-circle" style="font-size: 150px; color: #ccc;"></i>
+                                <i class="bi bi-person-circle" style="font-size: 150px; color: #99e81a;"></i>
                             </div>
                         {% endif %}
                     </div>
@@ -25,25 +67,31 @@
                     <div class="profile-stats">
                         <div class="row text-center">
                             <div class="col-4">
-                                <div class="stat-value">{{ pins_created }}</div>
-                                <div class="stat-label">Pins</div>
+                                <div class="stat-value" style="color: #cbff78; font-size: 1.5rem; font-weight: 500;">{{ pins_created }}</div>
+                                <div class="stat-label" style="color: #e9ffcc;">Pins</div>
                             </div>
                             <div class="col-4">
-                                <div class="stat-value">{{ favorite_count }}</div>
-                                <div class="stat-label">Favorites</div>
+                                <div class="stat-value" style="color: #cbff78; font-size: 1.5rem; font-weight: 500;">{{ favorite_count }}</div>
+                                <div class="stat-label" style="color: #e9ffcc;">Favorites</div>
                             </div>
                             <div class="col-4">
-                                <div class="stat-value">{{ review_count }}</div>
-                                <div class="stat-label">Reviews</div>
+                                <div class="stat-value" style="color: #cbff78; font-size: 1.5rem; font-weight: 500;">{{ review_count }}</div>
+                                <div class="stat-label" style="color: #e9ffcc;">Reviews</div>
                             </div>
                         </div>
                     </div>
                     
                     {% if is_own_profile %}
                     <div class="mt-3">
-                        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                        <button class="btn" style="border-color: #99e81a; color: #99e81a; background-color: transparent;" data-bs-toggle="modal" data-bs-target="#editProfileModal">
                             <i class="bi bi-pencil"></i> Edit Profile
                         </button>
+                    </div>
+                    {% else %}
+                    <div class="mt-3">
+                        <a href="{% url 'mapapp:new_conversation' username=profile_user.username %}" class="btn" style="border-color: #99e81a; color: #99e81a; background-color: transparent;">
+                            <i class="bi bi-chat-dots"></i> Send Message
+                        </a>
                     </div>
                     {% endif %}
                 </div>
@@ -52,8 +100,8 @@
         
         <!-- User's Pins -->
         <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
+            <div class="card" style="background-color: #284435; color: #fff; border: none; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+                <div class="card-header" style="background-color: #1c3326; border-bottom: none; padding: 0.75rem 1rem 0;">
                     <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="pins-tab" data-bs-toggle="tab" data-bs-target="#pins" type="button" role="tab" aria-controls="pins" aria-selected="true">
@@ -76,21 +124,21 @@
                                 <div class="row">
                                     {% for pin in pins %}
                                     <div class="col-md-6 mb-3">
-                                        <div class="card h-100">
+                                        <div class="card h-100" style="background-color: #365445; border: 1px solid #548f6f;">
                                             {% if pin.image %}
                                             <img src="{{ pin.image.url }}" class="card-img-top" alt="{{ pin.title }}">
                                             {% endif %}
                                             <div class="card-body">
-                                                <h5 class="card-title">
+                                                <h5 class="card-title" style="color: #cbff78;">
                                                     {{ pin.title }}
                                                     {% if pin.category == 'dispensary' %}
-                                                    <span class="badge bg-success"><i class="bi bi-shop"></i> Dispensary</span>
+                                                    <span class="badge" style="background-color: #99e81a; color: #1c3326;"><i class="bi bi-shop"></i> Dispensary</span>
                                                     {% else %}
-                                                    <span class="badge bg-primary"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>
+                                                    <span class="badge" style="background-color: #548f6f;"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>
                                                     {% endif %}
                                                 </h5>
                                                 <p class="card-text">{{ pin.description|truncatechars:100 }}</p>
-                                                <button class="btn btn-sm btn-outline-primary view-on-map" data-lat="{{ pin.latitude }}" data-lng="{{ pin.longitude }}" data-id="{{ pin.id }}">
+                                                <button class="btn btn-sm view-on-map" style="border-color: #99e81a; color: #99e81a; background-color: transparent;" data-lat="{{ pin.latitude }}" data-lng="{{ pin.longitude }}" data-id="{{ pin.id }}">
                                                     <i class="bi bi-map"></i> View on Map
                                                 </button>
                                             </div>
@@ -99,7 +147,7 @@
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                <p class="text-muted">No pins created yet.</p>
+                                <p style="color: #a1b59e;">No pins created yet.</p>
                             {% endif %}
                         </div>
                         
@@ -108,7 +156,7 @@
                             <!-- This will be loaded via AJAX -->
                             <div id="favorites-content">
                                 <div class="text-center">
-                                    <div class="spinner-border text-primary" role="status">
+                                    <div class="spinner-border" style="color: #99e81a;" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                 </div>
@@ -126,31 +174,31 @@
 <!-- Edit Profile Modal -->
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editProfileModalLabel">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content" style="background-color: #284435; color: #fff;">
+            <div class="modal-header" style="background-color: #1c3326; border-bottom: 1px solid #365445;">
+                <h5 class="modal-title" style="color: #cbff78;" id="editProfileModalLabel">Edit Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="profileForm" enctype="multipart/form-data" action="/profile/update/" method="post">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label for="profileAvatar" class="form-label">Profile Picture</label>
-                        <input type="file" class="form-control" id="profileAvatar" name="avatar" accept="image/*">
+                        <label for="profileAvatar" class="form-label" style="color: #cbff78; font-weight: 500;">Profile Picture</label>
+                        <input type="file" class="form-control" style="background-color: #365445; border: 1px solid #548f6f; color: #fff;" id="profileAvatar" name="avatar" accept="image/*">
                     </div>
                     <div class="mb-3">
-                        <label for="profileUsername" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="profileUsername" value="{{ profile_user.username }}" readonly>
-                        <small class="text-muted">Username cannot be changed</small>
+                        <label for="profileUsername" class="form-label" style="color: #cbff78; font-weight: 500;">Username</label>
+                        <input type="text" class="form-control" style="background-color: #365445; border: 1px solid #548f6f; color: #fff;" id="profileUsername" value="{{ profile_user.username }}" readonly>
+                        <small style="color: #a1b59e;">Username cannot be changed</small>
                     </div>
                     <div class="mb-3">
-                        <label for="profileEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="profileEmail" name="email" value="{{ profile_user.email }}">
+                        <label for="profileEmail" class="form-label" style="color: #cbff78; font-weight: 500;">Email</label>
+                        <input type="email" class="form-control" style="background-color: #365445; border: 1px solid #548f6f; color: #fff;" id="profileEmail" name="email" value="{{ profile_user.email }}">
                     </div>
                     
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <div class="modal-footer" style="background-color: #1c3326; border-top: 1px solid #365445;">
+                        <button type="button" class="btn" style="background-color: #365445; border-color: #365445; color: #fff;" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="saveProfileBtn" class="btn" style="background-color: #99e81a; border-color: #99e81a; color: #1c3326; font-weight: 500;">Save Changes</button>
                     </div>
                 </form>
             </div>
