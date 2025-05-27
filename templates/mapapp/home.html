@@ -822,17 +822,17 @@
                 // Check if the image path starts with /pin_images/ or is pin_images/
                 if (pin.image.startsWith('/pin_images/')) {
                     // Keep the pin_images/ directory but add media prefix properly
-                    imageUrl = `/media${pin.image}`; // This gives /media/pin_images/filename.jpg
+                    imageUrl = `${pin.image}`; // This gives /media/pin_images/filename.jpg
                     console.log("Transformed to:", imageUrl);
                 }
                 // Handle paths that are just pin_images/ without leading slash
                 else if (pin.image.startsWith('pin_images/')) {
-                    imageUrl = `/media/${pin.image}`; // This gives /media/pin_images/filename.jpg
+                    imageUrl = `${pin.image}`; // This gives /media/pin_images/filename.jpg
                     console.log("Transformed to:", imageUrl);
                 }
                 // Handle other direct paths without /media/ prefix
                 else if (pin.image.startsWith('/') && !pin.image.startsWith('/media/')) {
-                    imageUrl = `/media${pin.image}`;
+                    imageUrl = `${pin.image}`;
                     console.log("Added media prefix:", imageUrl);
                 }
                 

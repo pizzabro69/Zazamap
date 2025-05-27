@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 
 app_name = 'mapapp'
@@ -20,4 +20,5 @@ urlpatterns = [
     path('profile/update/', views.update_profile, name='update_profile'),
     path('profile/<str:username>/', views.profile_view, name='profile'),
     path('profile/', views.my_profile, name='my_profile'),
+    path('mapapp/media/<path:file_path>', views.media, name='media'),
 ]
