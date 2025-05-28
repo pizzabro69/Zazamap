@@ -8,7 +8,7 @@
 </div>
 
 <div class="modal fade" id="addPinModal" tabindex="-1" aria-labelledby="addPinModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addPinModalLabel">Add New Pin</h5>
@@ -143,12 +143,37 @@
         max-width: 100%;
         border-radius: 3px;
     }
-    
-    /* Override Leaflet's default popup styling */
+      /* Override Leaflet's default popup styling */
     .leaflet-popup-content-wrapper {
         background-color: white;
         border-radius: 5px;
         box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+    }
+    
+    /* Mobile responsive styling */
+    @media (max-width: 768px) {
+        .pin-popup {
+            min-width: 100%;
+            padding: 3px;
+        }
+        
+        .pin-title {
+            font-size: 14px;
+        }
+        
+        .pin-description {
+            font-size: 12px;
+        }
+        
+        .leaflet-popup-content {
+            margin: 8px;
+            max-width: 240px;
+        }
+        
+        .btn-sm {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+        }
         padding: 5px;
         max-width: 280px;  /* Limit maximum width */
     }
@@ -395,10 +420,22 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize the map
-        var map = L.map('map').setView([40.0, -3.0], 5);
+<script>    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the map with responsive zoom level
+        const isMobile = window.innerWidth <= 768;
+        const defaultZoom = isMobile ? 4 : 5; // Use smaller zoom level on mobile
+        
+        var map = L.map('map', {
+            zoomControl: !isMobile, // Hide default zoom control on mobile
+            attributionControl: true
+        }).setView([40.0, -3.0], defaultZoom);
+        
+        // Add zoom controls to top right on mobile
+        if (isMobile) {
+            L.control.zoom({
+                position: 'topright'
+            }).addTo(map);
+        }
         
         // Check for URL parameters to center map on specific pin
         const urlParams = new URLSearchParams(window.location.search);

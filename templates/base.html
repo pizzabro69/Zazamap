@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Zaza Map{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -18,14 +18,18 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    {% block extra_css %}{% endblock %}
-    
-    <style>
-        body {
+    {% block extra_css %}{% endblock %}      <style>
+        html, body {
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        body {
             display: flex;
             font-family: 'Roboto', sans-serif;
+            position: relative;
         }
         .sidebar {
             height: 100vh;
@@ -37,6 +41,7 @@
             display: flex;
             flex-direction: column;
             z-index: 1000;
+            position: relative;
         }
         .navbar-brand {
             display: flex;
@@ -79,23 +84,21 @@
             margin-right: 12px;
             font-size: 20px;
             color: #cbff78;
-        }
-        .map-container {
+        }        .map-container {
             flex-grow: 1;
             height: 100vh;
             position: relative;
+            overflow: hidden;
         }
         #map {
             height: 100%;
             width: 100%;
-        }
-
-
-        .user-section {
+        }        .user-section {
             border-top: 1px solid #e0e0e0;
             padding-top: 16px;
             margin-top: auto;
         }
+        
         .unread-badge {
             position: absolute;
             top: 5px;
@@ -111,18 +114,70 @@
             font-size: 10px;
             font-weight: bold;
         }
+        
+        /* Mobile map controls */
+        .leaflet-touch .leaflet-control-zoom a {
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+        }
+        
+        .leaflet-touch .leaflet-control-layers-toggle {
+            width: 30px;
+            height: 30px;
+        }
+        
+        /* Fix map popup on mobile */
+        .leaflet-popup-content {
+            margin: 10px;
+            max-width: calc(100vw - 80px);
+            overflow-wrap: break-word;        }
+
         @media (max-width: 768px) {
+            html, body {
+                position: fixed;
+                overflow: hidden;
+            }
             .sidebar {
                 width: 60px;
                 padding: 16px 8px;
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 1000;
             }
             .sidebar span, .navbar-brand span {
                 display: none;
             }
             .map-container {
                 width: calc(100% - 60px);
+                margin-left: 60px;
+                position: fixed;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                padding-right: 0;
+            }
+            .navbar-brand img {
+                width: 40px;
+                height: 40px;
+                margin-right: 0;
+            }
+            .sidebar i {
+                margin-right: 0;
+            }            /* Fix modal display on small screens */
+            .modal-fullscreen-sm-down {
+                max-width: 100%;
             }
             
+            /* Improve map controls on mobile */
+            .leaflet-touch .leaflet-bar a {
+                width: 36px !important;
+                height: 36px !important;
+                line-height: 36px !important;
+            }
         }
     </style>
 </head>
@@ -173,11 +228,7 @@
                     <span class="nav-header">Register</span>
                 </a>
             {% endif %}
-        </div>
-
-
-
-        </div>
+        </div>    </div>
 
     <div class="map-container">
         {% block content %}
