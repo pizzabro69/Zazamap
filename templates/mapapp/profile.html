@@ -273,19 +273,20 @@
             const formData = new FormData(document.getElementById('profileForm'));
             
             // Use explicit URL path instead of Django URL tag
-            fetch('/profile/update/', {  // Hardcode the correct URL path
+            fetch('/profile/update/', {
                 method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to update profile');
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-                return response.json();
             })
+            .then(response => response.json())
             .then(data => {
-                // Reload page to show updated profile
-                window.location.reload();
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert('Failed to update profile: ' + data.message);
+                }
             })
             .catch(error => {
                 console.error('Error updating profile:', error);

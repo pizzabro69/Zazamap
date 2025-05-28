@@ -297,12 +297,19 @@ def update_profile(request):
                 profile.avatar = request.FILES.get('avatar')
                 profile.save()
             
-            # Redirect back to profile page
-            messages.success(request, "Profile updated successfully.")
-            return redirect('mapapp:my_profile')
+            # Check if AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'success', 'message': 'Profile updated successfully'})
+            else:
+                # Redirect back to profile page for non-AJAX requests
+                messages.success(request, "Profile updated successfully.")
+                return redirect('mapapp:my_profile')
         except Exception as e:
-            messages.error(request, f"Error updating profile: {str(e)}")
-            return redirect('mapapp:my_profile')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+            else:
+                messages.error(request, f"Error updating profile: {str(e)}")
+                return redirect('mapapp:my_profile')
     
     # GET request redirects to profile
     return redirect('mapapp:my_profile')
