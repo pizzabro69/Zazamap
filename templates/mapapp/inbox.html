@@ -112,8 +112,7 @@
         white-space: nowrap;
         text-align: right;
     }
-    
-    .empty-state {
+      .empty-state {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -130,6 +129,42 @@
     
     .empty-state p {
         color: #a1b59e;
+    }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .content-card {
+            height: calc(100vh - 140px);
+            margin-top: 20px;
+        }
+        
+        .conversation-item {
+            padding: 8px;
+        }
+        
+        .avatar-container {
+            width: 36px;
+            height: 36px;
+            margin-right: 8px;
+        }
+        
+        .default-avatar {
+            font-size: 36px;
+            line-height: 36px;
+        }
+        
+        .avatar-img {
+            width: 36px;
+            height: 36px;
+        }
+        
+        .conversation-username {
+            font-size: 14px;
+        }
+        
+        .conversation-preview {
+            font-size: 12px;
+        }
     }
 </style>
 {% endblock %}
