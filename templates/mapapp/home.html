@@ -5,6 +5,7 @@
 {% block content %}
 <div class="map-container">
     <div id="map"></div>
+    <div class="pin-placement-instructions">Click on the map to place your pin</div>
 </div>
 
 <div class="modal fade" id="addPinModal" tabindex="-1" aria-labelledby="addPinModalLabel" aria-hidden="true">
@@ -410,11 +411,39 @@
         color: #0066cc;
         text-decoration: none;
         font-weight: 500;
-    }
-
-    .username-link:hover {
+    }    .username-link:hover {
         text-decoration: underline;
         color: #004499;
+    }
+    
+    /* Add Pin Button and Pin Placement Mode styles */
+    .add-pin-button {
+        background-color: #99e81a !important;
+        color: #1c3326 !important;
+        font-weight: bold;
+    }
+    
+    .add-pin-button.active {
+        background-color: #1c3326 !important;
+        color: #99e81a !important;
+    }
+    
+    .pin-placement-mode {
+        cursor: crosshair !important;
+    }
+    
+    .pin-placement-instructions {
+        position: absolute;
+        bottom: 60px;
+        right: 10px;
+        background-color: #284435;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        display: none;
     }
 </style>
 {% endblock %}
@@ -429,6 +458,14 @@
             zoomControl: !isMobile, // Hide default zoom control on mobile
             attributionControl: true
         }).setView([40.0, -3.0], defaultZoom);
+        
+        // Create modal instance for later use
+        var modal = new bootstrap.Modal(document.getElementById('addPinModal'));
+        
+        // Pin placement mode state
+        var pinPlacementMode = false;
+        var pinPlacementMarker = null;
+        var pinPlacementInstructions = null;
         
         // Add zoom controls to top right on mobile
         if (isMobile) {
@@ -449,37 +486,52 @@
             
             // After pins are loaded, find and open the popup for the specified pin
             if (pinId) {
-                // Setup an event listener that runs after pins are loaded
-                document.addEventListener('pinsLoaded', function() {
-                    map.eachLayer(function(layer) {
-                        if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
-                            // Open the popup for this pin
-                            setTimeout(() => {
-                                layer.openPopup();
-                            }, 500); // Short delay to ensure the map is ready
-                        }
-                    });
-                });
+                // This will be handled after pins are loaded
             }
         }
         
         // Add tile layer (OpenStreetMap)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
             maxZoom: 20
-        }).addTo(map);
-        
-        // Setup map click handler for adding pins
+        }).addTo(map);        // Handle map clicks for popups and pin placement
         map.on('click', function(e) {
-            // Store the clicked coordinates
-            document.getElementById('pinLatitude').value = e.latlng.lat;
-            document.getElementById('pinLongitude').value = e.latlng.lng;
+            // Close any open popups when clicking on the map
+            map.closePopup();
             
-            // Show the modal
-            var modal = new bootstrap.Modal(document.getElementById('addPinModal'));
-            modal.show();
+            // If in pin placement mode, handle pin creation
+            if (pinPlacementMode) {
+                // Set latitude and longitude in the form
+                document.getElementById('pinLatitude').value = e.latlng.lat;
+                document.getElementById('pinLongitude').value = e.latlng.lng;
+                
+                // Show the modal to create a new pin
+                modal.show();
+                
+                // Exit pin placement mode
+                togglePinPlacementMode();
+            }
         });
+        
+        // Function to toggle pin placement mode
+        function togglePinPlacementMode() {
+            // Get the button and instructions element
+            const addPinButton = document.querySelector('.add-pin-button');
+            const instructions = document.querySelector('.pin-placement-instructions');
+            
+            if (pinPlacementMode) {
+                // Exit pin placement mode
+                pinPlacementMode = false;
+                map.getContainer().classList.remove('pin-placement-mode');
+                addPinButton.classList.remove('active');
+                instructions.style.display = 'none';
+            } else {
+                // Enter pin placement mode
+                pinPlacementMode = true;
+                map.getContainer().classList.add('pin-placement-mode');
+                addPinButton.classList.add('active');
+                instructions.style.display = 'block';
+            }
+        }
         
         // Prevent map clicks from triggering on control elements
         document.querySelectorAll('.leaflet-control').forEach(function(control) {
@@ -592,9 +644,7 @@
             
             return div;
         };
-        locationControl.addTo(map);
-
-        // Add favorites control
+        locationControl.addTo(map);        // Add favorites control
         var favoritesControl = L.control({position: 'topright'});
         favoritesControl.onAdd = function(map) {
             var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
@@ -608,6 +658,25 @@
             
             return div;
         };
+        
+        // Add pin creation control
+        var addPinControl = L.control({position: 'bottomright'});
+        addPinControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.innerHTML = `<a href="#" title="Add New Pin" role="button" aria-label="Add New Pin" class="add-pin-button">
+                <i class="bi bi-plus-lg"></i></a>`;
+            
+            div.onclick = function() {
+                // Toggle pin placement mode
+                togglePinPlacementMode();
+                return false;
+            };
+            
+            return div;
+        };
+        
+        // Add pin control for all users
+        addPinControl.addTo(map);
 
         {% if user.is_authenticated %}
         favoritesControl.addTo(map);
@@ -739,7 +808,7 @@
         {% endif %}
 
         // Define custom icons for different pin types
-        // Shadow size could be guessed more accuraretly
+        // Shadow size could be guessed more accuratetly
         var smokeIcon = L.icon({
             iconUrl: '{% static "img/weed.png" %}',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -1045,9 +1114,12 @@
                     if (pin.category === 'dispensary') {
                         icon = dispensaryIcon;
                     }
-                    
-                    const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
-                        .bindPopup(popupContent);
+                      const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
+                        .bindPopup(popupContent, {
+                            closeButton: true,
+                            closeOnClick: false, // Prevent closing when clicking the popup
+                            autoPan: true
+                        });
                         
                     // Store pin data in the marker for later use
                     marker.pin = pin;
@@ -1343,11 +1415,14 @@
                         dispensaryCluster.addLayer(marker);
                     } else {
                         smokeCluster.addLayer(marker);
-                    }
-
-                    // Close the modal
+                    }                    // Close the modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addPinModal'));
                     modal.hide();
+                    
+                    // Exit pin placement mode if still active
+                    if (pinPlacementMode) {
+                        togglePinPlacementMode();
+                    }
                     
                     // Clear form
                     document.getElementById('addPinForm').reset();
@@ -1357,6 +1432,51 @@
                     alert('Failed to save pin. Please try again.');
                 });
             });
+        }
+
+        // Pin placement mode functionality
+        function togglePinPlacementMode() {
+            pinPlacementMode = !pinPlacementMode;
+            
+            if (pinPlacementMode) {
+                // Enable pin placement mode
+                map.on('click', onMapClick);
+                document.querySelector('.pin-placement-instructions').style.display = 'block';
+            } else {
+                // Disable pin placement mode
+                map.off('click', onMapClick);
+                document.querySelector('.pin-placement-instructions').style.display = 'none';
+                
+                // Remove any existing pin placement marker
+                if (pinPlacementMarker) {
+                    map.removeLayer(pinPlacementMarker);
+                    pinPlacementMarker = null;
+                }
+            }
+        }
+
+        function onMapClick(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            // If a marker already exists, just update its position
+            if (pinPlacementMarker) {
+                pinPlacementMarker.setLatLng(e.latlng);
+            } else {
+                // Create a new marker for pin placement
+                pinPlacementMarker = L.marker(e.latlng, {
+                    icon: L.divIcon({
+                        className: 'pin-placement-marker',
+                        html: '<i class="bi bi-pin-fill"></i>',
+                        iconSize: [30, 42],
+                        popupAnchor: [0, -35]
+                    })
+                }).addTo(map);
+            }
+            
+            // Update the hidden latitude and longitude fields
+            document.getElementById('pinLatitude').value = lat;
+            document.getElementById('pinLongitude').value = lng;
         }
     });
 </script>
