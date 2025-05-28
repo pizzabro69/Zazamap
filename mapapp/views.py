@@ -1,5 +1,6 @@
+import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -7,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.contrib import messages
 from .models import MapPin, Review, Favorite, Profile, Conversation, Message
+from django.utils import timezone
 import json
 
 def home(request):
@@ -304,6 +306,20 @@ def update_profile(request):
     
     # GET request redirects to profile
     return redirect('mapapp:my_profile')
+
+def media(request, file_path=None):
+    from django.conf import settings as cfg
+    media_root = getattr(cfg, 'MEDIA_ROOT', None)
+
+    if not media_root:
+        return HttpResponseBadRequest('Invalid Media Root Configuration')
+    if not file_path:
+        return HttpResponseBadRequest('Invalid File Path')
+
+    with open(os.path.join(media_root, file_path), 'rb') as doc:
+        response = HttpResponse(doc.read(), content_type='application/doc')
+        response['Content-Disposition'] = 'filename=%s' % (file_path.split('/')[-1])
+        return response
 
 @login_required
 def inbox_view(request):
