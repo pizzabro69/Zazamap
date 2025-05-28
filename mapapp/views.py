@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.contrib import messages
 from .models import MapPin, Review, Favorite, Profile, Conversation, Message
+from django.utils import timezone
 import json
 
 def home(request):
