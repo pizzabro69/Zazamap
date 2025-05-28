@@ -1,28 +1,69 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Zaza Map - About{% endblock %}
 
+{% block extra_css %}
+<style>
+    body {
+        background: url("{% static 'img/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    
+    .content-card {
+        background-color: #284435;
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        padding: 2rem;
+        border-radius: 8px;
+    }
+    
+    .content-card h1, .content-card h3 {
+        color: #cbff78;
+    }
+    
+    .content-card .lead {
+        color: #e9ffcc;
+        font-size: 1.2rem;
+    }
+    
+    .content-card .alert {
+        background-color: #1c3326;
+        border-color: #365445;
+    }
+    
+    .content-card .alert h4 {
+        color: #cbff78;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h1>About Zaza Map</h1>
-    <p class="lead">Zaza Map is a community platform where cannabis enthusiasts can discover and share comfortable smoking spots.</p>
-    
-    <div class="row mt-5">
-        <div class="col-md-6">
-            <h3>Our Mission</h3>
-            <p>To create a community-driven resource that helps people find peaceful, scenic, and safe locations to enjoy cannabis in a responsible manner.</p>
+<div class="container mt-5">
+    <div class="content-card">
+        <h1>About Zaza Map</h1>
+        <p class="lead">Zaza Map is a community platform where cannabis enthusiasts can discover and share comfortable smoking spots.</p>
+        
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <h3>Our Mission</h3>
+                <p>To create a community-driven resource that helps people find peaceful, scenic, and safe locations to enjoy cannabis in a responsible manner.</p>
+            </div>
+            <div class="col-md-6">
+                <h3>How It Works</h3>
+                <p>Click anywhere on the map to add a smoking spot you'd like to share. Add details about the location, ambiance, privacy level, and any tips for fellow enthusiasts. Rate spots you've visited to help others find the best experiences.</p>
+            </div>
         </div>
-        <div class="col-md-6">
-            <h3>How It Works</h3>
-            <p>Click anywhere on the map to add a smoking spot you'd like to share. Add details about the location, ambiance, privacy level, and any tips for fellow enthusiasts. Rate spots you've visited to help others find the best experiences.</p>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <h4>Community Guidelines</h4>
-                <p>Please respect local regulations and be mindful of others when using and sharing locations. Our community values discretion, cleanliness, and responsible consumption.</p>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert">
+                    <h4>Community Guidelines</h4>
+                    <p>Please respect local regulations and be mindful of others when using and sharing locations. Our community values discretion, cleanliness, and responsible consumption.</p>
+                </div>
             </div>
         </div>
     </div>

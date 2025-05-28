@@ -26,8 +26,10 @@ SECRET_KEY = 'django-insecure-*1vtk!*6o#u++04oljkcx2artb2oaj380eo*3+!&#7t6m6bhim
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['pizzabro.pythonanywhere.com', 'localhost', '127.0.0.1']
-
+ALLOWED_HOSTS = ['zaza-map.social', '127.18.0.4', 'localhost', '127.0.0.1']
+CSRF_TRUSTED_ORIGINS = [
+    "https://zaza-map.social/",
+]
 
 # Application definition
 

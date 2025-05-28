@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.contrib import messages
-from .models import MapPin, Review, Favorite, Profile
+from .models import MapPin, Review, Favorite, Profile, Conversation, Message
 import json
 
 def home(request):
@@ -319,3 +319,140 @@ def media(request, file_path=None):
         response = HttpResponse(doc.read(), content_type='application/doc')
         response['Content-Disposition'] = 'filename=%s' % (file_path.split('/')[-1])
         return response
+
+@login_required
+def inbox_view(request):
+    """Display user's message inbox"""
+    conversations = Conversation.objects.filter(participants=request.user)
+    
+    for conversation in conversations:
+        conversation.other_user = conversation.get_other_participant(request.user)
+        conversation.last_message = conversation.messages.last()
+        # Count unread messages
+        conversation.unread_count = conversation.messages.filter(
+            is_read=False
+        ).exclude(sender=request.user).count()
+    
+    context = {
+        'conversations': conversations
+    }
+    return render(request, 'mapapp/inbox.html', context)
+
+@login_required
+def conversation_view(request, conversation_id=None, username=None):
+    """Display a conversation with another user"""
+    conversation = None
+    other_user = None
+    
+    # Get conversation by ID or create new one with user by username
+    if conversation_id:
+        conversation = get_object_or_404(
+            Conversation.objects.filter(participants=request.user), 
+            id=conversation_id
+        )
+        other_user = conversation.get_other_participant(request.user)
+    elif username:
+        other_user = get_object_or_404(User, username=username)
+        
+        # Check if conversation already exists
+        conversations = Conversation.objects.filter(
+            participants=request.user
+        ).filter(
+            participants=other_user
+        )
+        
+        if conversations.exists():
+            conversation = conversations.first()
+        else:
+            # Create new conversation
+            conversation = Conversation.objects.create()
+            conversation.participants.add(request.user, other_user)
+    
+    if conversation:
+        # Mark messages as read
+        conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+        messages = conversation.messages.all()
+    else:
+        messages = []
+    
+    context = {
+        'conversation': conversation,
+        'messages': messages,
+        'other_user': other_user
+    }
+    
+    return render(request, 'mapapp/conversation.html', context)
+
+@login_required
+def send_message(request, conversation_id):
+    """Send a message in a conversation"""
+    conversation = get_object_or_404(
+        Conversation.objects.filter(participants=request.user),
+        id=conversation_id
+    )
+    
+    if request.method == 'POST':
+        content = request.POST.get('content', '').strip()
+        
+        if content:
+            message = Message.objects.create(
+                conversation=conversation,
+                sender=request.user,
+                content=content
+            )
+            
+            # Update conversation timestamp
+            conversation.updated_at = timezone.now()
+            conversation.save()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'message_id': message.id,
+                    'created_at': message.created_at.strftime("%b %d, %Y, %I:%M %p")
+                })
+    
+    return redirect('mapapp:conversation', conversation_id=conversation_id)
+
+@login_required
+def get_unread_count(request):
+    """Get count of unread messages for the current user"""
+    count = Message.objects.filter(
+        conversation__participants=request.user,
+        is_read=False
+    ).exclude(sender=request.user).count()
+    
+    return JsonResponse({'unread_count': count})
+
+@login_required
+def get_new_messages(request, conversation_id):
+    """Get new messages in a conversation since the given ID"""
+    conversation = get_object_or_404(
+        Conversation.objects.filter(participants=request.user),
+        id=conversation_id
+    )
+    
+    # Mark messages as read
+    conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    
+    # Get the ID to fetch messages since
+    since_id = request.GET.get('since', 0)
+    try:
+        since_id = int(since_id)
+    except ValueError:
+        since_id = 0
+    
+    # Get new messages
+    new_messages = conversation.messages.filter(id__gt=since_id)
+    
+    # Format messages for JSON response
+    messages_data = []
+    for message in new_messages:
+        messages_data.append({
+            'id': message.id,
+            'content': message.content,
+            'is_own': message.sender == request.user,
+            'created_at': message.created_at.strftime("%b %d, %I:%M %p")  # Fixed format
+        })
+    
+    return JsonResponse({'messages': messages_data})
