@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.contrib import messages
-from .models import MapPin, Review, Favorite, Profile, Conversation, Message
+from .models import MapPin, Review, Favorite, Profile, Conversation, Message, UserBadge
 from django.utils import timezone
 import json
 
@@ -268,12 +268,16 @@ def profile_view(request, username):
     # Get pins created by user
     pins = MapPin.objects.filter(user=user).order_by('-created_at')
     
+    # Get user badges
+    user_badges = UserBadge.objects.filter(user=user).select_related('badge').order_by('-awarded_at')
+    
     context = {
         'profile_user': user,
         'pins_created': pins_created,
         'favorite_count': favorite_count,
         'review_count': review_count,
         'pins': pins,
+        'user_badges': user_badges,
         'is_own_profile': request.user == user if request.user.is_authenticated else False
     }
     

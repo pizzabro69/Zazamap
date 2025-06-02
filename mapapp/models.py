@@ -96,3 +96,27 @@ class Message(models.Model):
     
     class Meta:
         ordering = ['created_at']
+
+class Badge(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    icon = models.CharField(max_length=50, help_text="Bootstrap icon class (e.g., 'bi-trophy')")
+    color = models.CharField(max_length=20, default="success", 
+                            help_text="Bootstrap color class (e.g., 'success', 'primary', 'warning')")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
+
+class UserBadge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='badges')
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE)
+    awarded_at = models.DateTimeField(auto_now_add=True)
+    awarded_by = models.ForeignKey(User, on_delete=models.SET_NULL, 
+                                  related_name='badges_awarded', null=True)
+    
+    class Meta:
+        unique_together = ('user', 'badge')
+        
+    def __str__(self):
+        return f"{self.user.username} - {self.badge.name}"

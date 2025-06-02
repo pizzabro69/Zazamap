@@ -60,6 +60,36 @@
             font-size: 0.9rem;
         }
     }
+    
+    .profile-badges {
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #365445;
+        border-radius: 8px;
+    }
+    
+    .badges-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    
+    .badge-item {
+        margin-bottom: 8px;
+    }
+    
+    .badge-lg {
+        font-size: 16px !important;
+        padding: 8px 12px !important;
+    }
+    
+    .badge-lg i {
+        margin-right: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -82,6 +112,26 @@
                             </div>
                         {% endif %}
                     </div>
+                    
+                    <!-- User Badges Section -->
+                    {% if user_badges %}
+                    <div class="profile-badges mb-4">
+                        <h6 style="color: #e9ffcc; margin-bottom: 10px;">Badges</h6>
+                        <div class="badges-container">
+                            {% for user_badge in user_badges %}
+                            <div class="badge-item" data-bs-toggle="tooltip" title="{{ user_badge.badge.description }}">
+                                <span class="badge bg-{{ user_badge.badge.color }} badge-lg">
+                                    <i class="bi {{ user_badge.badge.icon }}"></i> {{ user_badge.badge.name }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-2">
+                        <!-- This is just for debugging -->
+                        {{ user_badges|length }} badge(s) found
+                    </div>
+                    {% endif %}
                     
                     <div class="profile-stats">
                         <div class="row text-center">
@@ -300,7 +350,7 @@
                 }
             })
             .then(response => response.json())
-            .then(data => {
+            .then data => {
                 if (data.status === 'success') {
                     window.location.reload();
                 } else {
@@ -313,6 +363,16 @@
             });
         });
         {% endif %}
+    });
+    
+    // Initialize tooltips for badges
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        console.log("User badges loaded:", {{ user_badges|length }});
     });
 </script>
 {% endblock %}
