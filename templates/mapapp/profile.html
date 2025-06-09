@@ -127,10 +127,6 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <div class="small text-muted mt-2">
-                        <!-- This is just for debugging -->
-                        {{ user_badges|length }} badge(s) found
-                    </div>
                     {% endif %}
                     
                     <div class="profile-stats">
@@ -350,7 +346,7 @@
                 }
             })
             .then(response => response.json())
-            .then data => {
+            .then(data => {
                 if (data.status === 'success') {
                     window.location.reload();
                 } else {
