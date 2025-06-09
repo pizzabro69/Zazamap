@@ -1,0 +1,734 @@
+{% load static %}
+
+<style>
+  /* Mobile-first modal design */
+  #pinDetailModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #284435;
+    z-index: 10000;
+    display: none;
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+  
+  #pinDetailModal.active {
+    display: block;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #365445;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #1c3326;
+  }
+  
+  .modal-title {
+    margin: 0;
+    color: #cbff78;
+    font-size: 20px;
+  }
+  
+  .close-button {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+  }
+  
+  .modal-body {
+    padding: 15px;
+    color: #fff;
+  }
+  
+  /* Pin detail container styles */
+  .pin-detail-img-container {
+    min-height: 200px;
+    background-color: #1c3326;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+  }
+  
+  /* Placeholder for when no image is available */
+  .no-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+  }
+  
+  /* Star ratings */
+  .stars-container .star {
+    color: #f8d64e;
+    font-size: 24px;
+    cursor: pointer;
+    margin-right: 5px;
+  }
+  
+  /* Reviews */
+  .review-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    background-color: #1c3326;
+    border-radius: 6px;
+  }
+  
+  /* Feature badges */
+  .features-list .feature-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    background-color: #365445;
+    font-size: 14px;
+  }
+  
+  .features-list .feature-badge i {
+    margin-right: 5px;
+    color: #99e81a;
+  }
+  
+  /* Desktop styling */
+  @media (min-width: 768px) {
+    #pinDetailModal {
+      top: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 900px;
+      bottom: 5%;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      height: auto;
+      max-height: 90vh;
+    }
+    
+    .modal-header {
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+    }
+  }
+  
+  /* Fix for iOS scrolling issues */
+  @media (max-width: 767px) {
+    #pinDetailModal {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .pin-detail-img-container {
+      min-height: 150px;
+    }
+    
+    .no-image-placeholder {
+      height: 150px;
+    }
+  }
+</style>
+
+<!-- Simple Modal Structure -->
+<div id="pinDetailModal">
+  <div class="modal-header">
+    <h5 class="modal-title" id="modalPinTitle">Pin Details</h5>
+    <button type="button" class="close-button" id="modalCloseBtn">&times;</button>
+  </div>
+  <div class="modal-body">
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Image section -->
+        <div class="col-md-6 mb-3">
+          <div class="pin-detail-img-container">
+            <img id="modalPinImage" class="img-fluid rounded" src="" alt="" style="max-height: 300px; width: 100%; object-fit: cover; display: none;">
+            <div id="modalNoImage" class="no-image-placeholder">
+              <i class="bi bi-image" style="font-size: 64px; color: #548f6f;"></i>
+              <p>No image available</p>
+            </div>
+          </div>
+          
+          <div class="pin-action-buttons d-flex flex-wrap mb-3">
+            <a id="modalDirectionsLink" href="" target="_blank" class="btn btn-success me-2 mb-2">
+              <i class="bi bi-geo"></i> Get Directions
+            </a>
+            <button id="modalFavoriteBtn" class="btn btn-outline-danger me-2 mb-2">
+              <i class="bi bi-heart"></i>
+            </button>
+            <button id="modalDeleteBtn" class="btn btn-danger mb-2" style="display: none;">
+              <i class="bi bi-trash"></i> Delete Pin
+            </button>
+          </div>
+
+          <div class="pin-meta-info p-3 rounded mb-4" style="background-color: #1c3326; border: 1px solid #365445;">
+            <p class="mb-2">
+              <span id="modalCategoryBadge" class="badge bg-primary">
+                <i class="bi bi-emoji-smile"></i> Smoke Spot
+              </span>
+            </p>
+            <p class="mb-2">
+              <strong>Added by:</strong> 
+              <a id="modalPinAuthor" href="" style="color: #99e81a; text-decoration: none;"></a>
+            </p>
+            <div class="stars-display mb-3">
+              <span id="modalStarsDisplay"></span>
+              <span id="modalReviewCount" class="review-count">(0 reviews)</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Description and features section -->
+        <div class="col-md-6">
+          <div class="mb-4">
+            <h5 style="color: #cbff78;">Description</h5>
+            <p id="modalPinDescription" class="pin-description"></p>
+          </div>
+          
+          <div class="mb-4">
+            <h5 style="color: #cbff78;">Features</h5>
+            <div id="modalFeaturesList" class="features-list">
+              <!-- Feature badges will be inserted here -->
+            </div>
+          </div>
+          
+          <!-- Reviews section -->
+          <div class="mb-4">
+            <h5 style="color: #cbff78;">Reviews</h5>
+            <div id="modalReviewsContainer">
+              <p id="modalNoReviews">No reviews yet.</p>
+              <div id="modalReviewsList"></div>
+            </div>
+          </div>
+          
+          <!-- Add review form -->
+          <div id="modalReviewFormContainer" class="p-3 rounded" style="background-color: #1c3326; border: 1px solid #365445;">
+            <h5 style="color: #cbff78;">Add Your Review</h5>
+            <div class="stars-input mb-2">
+              <div id="modalStarsInput" class="stars-container">
+                <span class="star" data-value="1"><i class="bi bi-star"></i></span>
+                <span class="star" data-value="2"><i class="bi bi-star"></i></span>
+                <span class="star" data-value="3"><i class="bi bi-star"></i></span>
+                <span class="star" data-value="4"><i class="bi bi-star"></i></span>
+                <span class="star" data-value="5"><i class="bi bi-star"></i></span>
+              </div>
+            </div>
+            <input type="hidden" id="modalRatingValue" value="0">
+            <div class="mb-2">
+              <textarea id="modalReviewComment" class="form-control" 
+                placeholder="Add your comment (optional)" rows="3"
+                style="background-color: #365445; border: 1px solid #548f6f; color: #fff;"></textarea>
+            </div>
+            <button id="modalSubmitReview" class="btn" 
+              style="background-color: #99e81a; color: #1c3326; font-weight: 500;">Submit</button>
+            <div id="modalLoginPrompt" style="display: none;">
+              <a href="{% url 'mapapp:login' %}" style="color: #99e81a;">Login</a> to leave a review
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('pinDetailModal');
+    const closeBtn = document.getElementById('modalCloseBtn');
+    
+    // Simple open/close functions that don't rely on Bootstrap
+    function showModal() {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      
+      // Hide sidebar on mobile
+      if (window.innerWidth <= 767) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.style.display = 'none';
+      }
+    }
+    
+    function hideModal() {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      
+      // Show sidebar again
+      if (window.innerWidth <= 767) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) setTimeout(() => sidebar.style.display = '', 100);
+      }
+    }
+    
+    // Close on button click
+    if (closeBtn) closeBtn.addEventListener('click', hideModal);
+    
+    // Close on ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('active')) {
+        hideModal();
+      }
+    });
+    
+    // Function to display pin details
+    window.openPinDetailModal = function(pin) {
+      // Set title
+      const title = document.getElementById('modalPinTitle');
+      if (title) title.textContent = pin.title || 'Pin Details';
+      
+      // Set image or placeholder
+      const image = document.getElementById('modalPinImage');
+      const noImage = document.getElementById('modalNoImage');
+      if (image && noImage) {
+        if (pin.image) {
+          image.onerror = function() {
+            image.style.display = 'none';
+            noImage.style.display = 'flex';
+          };
+          image.src = pin.image;
+          image.style.display = 'block';
+          noImage.style.display = 'none';
+        } else {
+          image.style.display = 'none';
+          noImage.style.display = 'flex';
+        }
+      }
+      
+      // Set directions link
+      const directionsLink = document.getElementById('modalDirectionsLink');
+      if (directionsLink) {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}`;
+      }
+      
+      // Set category badge
+      const categoryBadge = document.getElementById('modalCategoryBadge');
+      if (categoryBadge) {
+        if (pin.category === 'dispensary') {
+          categoryBadge.className = 'badge bg-success';
+          categoryBadge.innerHTML = '<i class="bi bi-shop"></i> Dispensary';
+        } else {
+          categoryBadge.className = 'badge bg-primary';
+          categoryBadge.innerHTML = '<i class="bi bi-emoji-smile"></i> Smoke Spot';
+        }
+      }
+      
+      // Set author
+      const authorLink = document.getElementById('modalPinAuthor');
+      if (authorLink) {
+        authorLink.textContent = pin.username || 'Unknown';
+        authorLink.href = `/profile/${pin.username}/`;
+      }
+      
+      // Set rating stars
+      const starsDisplay = document.getElementById('modalStarsDisplay');
+      if (starsDisplay) {
+        starsDisplay.innerHTML = getStarsHtml(pin.average_rating || 0);
+      }
+      
+      const reviewCount = document.getElementById('modalReviewCount');
+      if (reviewCount) {
+        reviewCount.textContent = `(${pin.rating_count || 0} ${pin.rating_count === 1 ? 'review' : 'reviews'})`;
+      }
+      
+      // Set description
+      const description = document.getElementById('modalPinDescription');
+      if (description) {
+        description.textContent = pin.description || 'No description available.';
+      }
+      
+      // Set feature badges
+      const features = document.getElementById('modalFeaturesList');
+      if (features) {
+        features.innerHTML = '';
+        
+        // Security level
+        if (pin.security_level > 1) {
+          const securityLabels = ['', 'Low', 'Medium', 'High'];
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-shield-fill"></i> ${securityLabels[pin.security_level]} discretion
+          </div>`;
+        }
+        
+        // Has seating
+        if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on') {
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-chair"></i> Seating
+          </div>`;
+        }
+        
+        // Is scenic
+        if (pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on') {
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-image"></i> Scenic
+          </div>`;
+        }
+        
+        // Is sheltered
+        if (pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on') {
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-umbrella"></i> Sheltered
+          </div>`;
+        }
+        
+        // Is private
+        if (pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on') {
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-eye-slash"></i> Private
+          </div>`;
+        }
+        
+        // Is accessible
+        if (pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on') {
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-universal-access"></i> Accessible
+          </div>`;
+        } else if (pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
+          features.innerHTML += `<div class="feature-badge">
+              <i class="bi bi-universal-access-circle"></i> Limited access
+          </div>`;
+        }
+      }
+      
+      // Set up favorite button
+      const isAuthenticated = document.body.dataset.userAuthenticated === 'true';
+      const currentUsername = document.body.dataset.username;
+      const favoriteBtn = document.getElementById('modalFavoriteBtn');
+      
+      if (favoriteBtn) {
+        if (isAuthenticated) {
+          favoriteBtn.style.display = 'inline-block';
+          favoriteBtn.dataset.pinId = pin.id;
+          
+          if (pin.is_favorite) {
+            favoriteBtn.className = 'btn btn-danger me-2 mb-2';
+            favoriteBtn.innerHTML = '<i class="bi bi-heart-fill"></i>';
+          } else {
+            favoriteBtn.className = 'btn btn-outline-danger me-2 mb-2';
+            favoriteBtn.innerHTML = '<i class="bi bi-heart"></i>';
+          }
+        } else {
+          favoriteBtn.style.display = 'none';
+        }
+      }
+      
+      // Set up delete button
+      const deleteBtn = document.getElementById('modalDeleteBtn');
+      if (deleteBtn) {
+        if (isAuthenticated && pin.username === currentUsername) {
+          deleteBtn.style.display = 'inline-block';
+          deleteBtn.dataset.pinId = pin.id;
+        } else {
+          deleteBtn.style.display = 'none';
+        }
+      }
+      
+      // Setup review form
+      const reviewForm = document.getElementById('modalReviewFormContainer');
+      const loginPrompt = document.getElementById('modalLoginPrompt');
+      const submitBtn = document.getElementById('modalSubmitReview');
+      
+      if (reviewForm && loginPrompt && submitBtn) {
+        if (isAuthenticated) {
+          reviewForm.style.display = 'block';
+          loginPrompt.style.display = 'none';
+          submitBtn.dataset.pinId = pin.id;
+          
+          // Reset review form
+          const ratingValue = document.getElementById('modalRatingValue');
+          const reviewComment = document.getElementById('modalReviewComment');
+          const stars = document.querySelectorAll('#modalStarsInput .star i');
+          
+          if (ratingValue) ratingValue.value = '0';
+          if (reviewComment) reviewComment.value = '';
+          if (stars) {
+            stars.forEach(star => {
+              star.className = 'bi bi-star';
+            });
+          }
+        } else {
+          reviewForm.style.display = 'none';
+          loginPrompt.style.display = 'block';
+        }
+      }
+      
+      // Show modal
+      showModal();
+      
+      // Load reviews
+      loadReviewsForModal(pin.id);
+    };
+    
+    // Handle favorite button
+    const favoriteBtn = document.getElementById('modalFavoriteBtn');
+    if (favoriteBtn) {
+      favoriteBtn.addEventListener('click', function() {
+        const pinId = this.dataset.pinId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        
+        if (!csrfToken) {
+          alert('CSRF token not found. Please refresh the page and try again.');
+          return;
+        }
+        
+        fetch(`/api/pins/${pinId}/favorite/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrfToken.value
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'added') {
+            this.className = 'btn btn-danger me-2 mb-2';
+            this.innerHTML = '<i class="bi bi-heart-fill"></i>';
+          } else {
+            this.className = 'btn btn-outline-danger me-2 mb-2';
+            this.innerHTML = '<i class="bi bi-heart"></i>';
+          }
+          
+          // Update marker data if the window function exists
+          if (typeof window.updateMarkerFavorite === 'function') {
+            window.updateMarkerFavorite(pinId, data.status === 'added');
+          }
+        })
+        .catch(error => {
+          console.error('Error toggling favorite:', error);
+          alert('Failed to update favorite. Please try again.');
+        });
+      });
+    }
+    
+    // Handle delete button
+    const deleteBtn = document.getElementById('modalDeleteBtn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', function() {
+        const pinId = this.dataset.pinId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        
+        if (!csrfToken) {
+          alert('CSRF token not found. Please refresh the page and try again.');
+          return;
+        }
+        
+        if (confirm('Are you sure you want to delete this pin? This action cannot be undone.')) {
+          fetch(`/api/pins/${pinId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRFToken': csrfToken.value
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            // Close modal
+            hideModal();
+            
+            // Remove marker from map if the window function exists
+            if (typeof window.removeMarkerFromMap === 'function') {
+              window.removeMarkerFromMap(pinId);
+            }
+            
+            alert('Pin deleted successfully');
+          })
+          .catch(error => {
+            console.error('Error deleting pin:', error);
+            alert('Failed to delete pin. Please try again.');
+          });
+        }
+      });
+    }
+    
+    // Handle star rating
+    const starsInput = document.querySelector('#modalStarsInput');
+    if (starsInput) {
+      starsInput.addEventListener('click', function(e) {
+        if (e.target.closest('.star')) {
+          const star = e.target.closest('.star');
+          const rating = parseInt(star.dataset.value);
+          
+          // Update stars display
+          const stars = this.querySelectorAll('.star');
+          stars.forEach((s, index) => {
+            const starIcon = s.querySelector('i');
+            if (index < rating) {
+              starIcon.className = 'bi bi-star-fill';
+            } else {
+              starIcon.className = 'bi bi-star';
+            }
+          });
+          
+          // Store rating value
+          const ratingValue = document.getElementById('modalRatingValue');
+          if (ratingValue) ratingValue.value = rating;
+        }
+      });
+    }
+    
+    // Handle submit review
+    const submitReviewBtn = document.getElementById('modalSubmitReview');
+    if (submitReviewBtn) {
+      submitReviewBtn.addEventListener('click', function() {
+        const pinId = this.dataset.pinId;
+        const ratingValue = document.getElementById('modalRatingValue');
+        const reviewComment = document.getElementById('modalReviewComment');
+        
+        if (!ratingValue || !reviewComment) return;
+        
+        const rating = parseInt(ratingValue.value);
+        const comment = reviewComment.value.trim();
+        
+        if (rating === 0) {
+          alert('Please select a rating before submitting.');
+          return;
+        }
+        
+        // Find CSRF token
+        let csrfToken;
+        const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfElement) {
+          csrfToken = csrfElement.value;
+        } else {
+          const csrfCookie = document.cookie.split(';').find(c => c.trim().startsWith('csrftoken='));
+          if (csrfCookie) {
+            csrfToken = csrfCookie.split('=')[1];
+          }
+        }
+        
+        if (!csrfToken) {
+          alert('Security token not found. Please refresh the page and try again.');
+          return;
+        }
+        
+        // Disable button during submission
+        submitReviewBtn.disabled = true;
+        submitReviewBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
+        
+        fetch(`/api/pins/${pinId}/reviews/create/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({
+            rating: rating,
+            comment: comment
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Update displays
+          const starsDisplay = document.getElementById('modalStarsDisplay');
+          if (starsDisplay) starsDisplay.innerHTML = getStarsHtml(data.average_rating);
+          
+          const reviewCount = document.getElementById('modalReviewCount');
+          if (reviewCount) {
+            reviewCount.textContent = `(${data.rating_count} ${data.rating_count === 1 ? 'review' : 'reviews'})`;
+          }
+          
+          // Reset form
+          if (ratingValue) ratingValue.value = '0';
+          if (reviewComment) reviewComment.value = '';
+          
+          const stars = document.querySelectorAll('#modalStarsInput .star i');
+          stars.forEach(star => {
+            star.className = 'bi bi-star';
+          });
+          
+          // Reload reviews
+          loadReviewsForModal(pinId);
+          
+          // Update marker data if the window function exists
+          if (typeof window.updateMarkerRating === 'function') {
+            window.updateMarkerRating(pinId, data.average_rating, data.rating_count);
+          }
+          
+          alert('Thank you for your review!');
+        })
+        .catch(error => {
+          console.error('Error submitting review:', error);
+          alert('Failed to submit review. Please try again.');
+        })
+        .finally(() => {
+          // Re-enable button
+          submitReviewBtn.disabled = false;
+          submitReviewBtn.innerHTML = 'Submit';
+        });
+      });
+    }
+  });
+  
+  // Function to load reviews for a pin
+  function loadReviewsForModal(pinId) {
+    const reviewsList = document.getElementById('modalReviewsList');
+    const noReviews = document.getElementById('modalNoReviews');
+    
+    if (!reviewsList || !noReviews) return;
+    
+    fetch(`/api/pins/${pinId}/reviews/`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.reviews && data.reviews.length > 0) {
+          reviewsList.innerHTML = '';
+          noReviews.style.display = 'none';
+          
+          data.reviews.forEach(review => {
+            reviewsList.innerHTML += `
+              <div class="review-item">
+                <div class="stars-display">
+                  ${getStarsHtml(review.rating)}
+                  <span style="color: #cbff78; font-weight: 500;">${review.username}</span>
+                </div>
+                ${review.comment ? `<p class="mt-2">${review.comment}</p>` : ''}
+              </div>`;
+          });
+          reviewsList.style.display = 'block';
+        } else {
+          noReviews.style.display = 'block';
+          reviewsList.style.display = 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading reviews:', error);
+        reviewsList.innerHTML = '<div class="alert alert-danger">Failed to load reviews</div>';
+      });
+  }
+  
+  // Helper function for star ratings
+  function getStarsHtml(rating) {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    
+    let html = '';
+    for (let i = 0; i < fullStars; i++) {
+      html += '<i class="bi bi-star-fill"></i>';
+    }
+    if (halfStar) {
+      html += '<i class="bi bi-star-half"></i>';
+    }
+    for (let i = 0; i < emptyStars; i++) {
+      html += '<i class="bi bi-star"></i>';
+    }
+    return html;
+  }
+</script>

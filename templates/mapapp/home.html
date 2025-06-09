@@ -8,6 +8,10 @@
     <div class="pin-placement-instructions">Click on the map to place your pin</div>
 </div>
 
+<!-- Include the pin detail modal -->
+{% include 'mapapp/pin_detail_modal.html' %}
+
+<!-- Add Pin Modal (kept from original) -->
 <div class="modal fade" id="addPinModal" tabindex="-1" aria-labelledby="addPinModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content">
@@ -449,7 +453,34 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>    document.addEventListener('DOMContentLoaded', function() {
+<script>
+    // Add data attributes to the body for auth status
+    document.body.dataset.userAuthenticated = '{{ user.is_authenticated|lower }}';
+    document.body.dataset.username = '{{ user.username }}';
+    
+    // Helper function to create star rating HTML
+    function getStarsHtml(rating) {
+        const fullStars = Math.floor(rating);
+        const halfStar = rating % 1 >= 0.5;
+        const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+        
+        let html = '';
+        // Full stars
+        for (let i = 0; i < fullStars; i++) {
+            html += '<i class="bi bi-star-fill"></i>';
+        }
+        // Half star if needed
+        if (halfStar) {
+            html += '<i class="bi bi-star-half"></i>';
+        }
+        // Empty stars
+        for (let i = 0; i < emptyStars; i++) {
+            html += '<i class="bi bi-star"></i>';
+        }
+        return html;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
         // Initialize the map with responsive zoom level
         const isMobile = window.innerWidth <= 768;
         const defaultZoom = isMobile ? 4 : 5; // Use smaller zoom level on mobile
@@ -465,7 +496,6 @@
         // Pin placement mode state
         var pinPlacementMode = false;
         var pinPlacementMarker = null;
-        var pinPlacementInstructions = null;
         
         // Add zoom controls to top right on mobile
         if (isMobile) {
@@ -483,17 +513,14 @@
         if (pinLat && pinLng) {
             // Center the map on the specified location
             map.setView([parseFloat(pinLat), parseFloat(pinLng)], 16);
-            
-            // After pins are loaded, find and open the popup for the specified pin
-            if (pinId) {
-                // This will be handled after pins are loaded
-            }
         }
         
         // Add tile layer (OpenStreetMap)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 20
-        }).addTo(map);        // Handle map clicks for popups and pin placement
+        }).addTo(map);
+        
+        // Handle map clicks for popups and pin placement
         map.on('click', function(e) {
             // Close any open popups when clicking on the map
             map.closePopup();
@@ -808,7 +835,6 @@
         {% endif %}
 
         // Define custom icons for different pin types
-        // Shadow size could be guessed more accuratetly
         var smokeIcon = L.icon({
             iconUrl: '{% static "img/weed.png" %}',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -827,263 +853,6 @@
             shadowSize: [50, 50]
         });
 
-        // Helper function to create star rating HTML
-        function getStarsHtml(rating) {
-            const fullStars = Math.floor(rating);
-            const halfStar = rating % 1 >= 0.5;
-            const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-            
-            let html = '';
-            // Full stars
-            for (let i = 0; i < fullStars; i++) {
-                html += '<i class="bi bi-star-fill"></i>';
-            }
-            // Half star if needed
-            if (halfStar) {
-                html += '<i class="bi bi-star-half"></i>';
-            }
-            // Empty stars
-            for (let i = 0; i < emptyStars; i++) {
-                html += '<i class="bi bi-star"></i>';
-            }
-            return html;
-        }
-        
-        // Function to create review form HTML
-        function createReviewFormHtml(pinId) {
-            const isMobile = window.innerWidth <= 768;
-            
-            let html = `
-                ${isMobile ? '<button class="btn btn-sm btn-outline-secondary toggle-review-form w-100"><i class="bi bi-pencil"></i> Write a Review</button>' : ''}
-                <div class="review-form" ${isMobile ? 'style="display:none"' : ''}>
-                    <h6>Add Your Review</h6>
-                    <div class="stars-input mb-2">
-                        <div class="stars-container" data-pin="${pinId}">
-                            <span class="star" data-value="1"><i class="bi bi-star"></i></span>
-                            <span class="star" data-value="2"><i class="bi bi-star"></i></span>
-                            <span class="star" data-value="3"><i class="bi bi-star"></i></span>
-                            <span class="star" data-value="4"><i class="bi bi-star"></i></span>
-                            <span class="star" data-value="5"><i class="bi bi-star"></i></span>
-                        </div>
-                    </div>
-                    <input type="hidden" class="rating-value" value="0">
-                    <div class="mb-2">
-                        <textarea class="form-control review-comment" placeholder="Add a comment (optional)" rows="1"></textarea>
-                    </div>
-                    <button class="btn btn-sm btn-primary submit-review" data-pin="${pinId}">Submit</button>
-                </div>`;
-            return html;
-        }
-
-        // Add event handler for toggling review form
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.toggle-review-form')) {
-                const button = e.target.closest('.toggle-review-form');
-                const reviewForm = button.nextElementSibling;
-                reviewForm.style.display = reviewForm.style.display === 'none' ? 'block' : 'none';
-            }
-        });
-        
-        // Function to create review list HTML
-        function createReviewListHtml(reviews) {
-            if (reviews.length === 0) {
-                return '<div class="review-list"><p>No reviews yet</p></div>';
-            }
-            
-            let html = '<div class="review-list"><h6>Reviews</h6>';
-            reviews.forEach(review => {
-                html += `
-                    <div class="review-item">
-                        <div class="stars-display">
-                            ${getStarsHtml(review.rating)}
-                            <span class="review-user">${review.username}</span>
-                        </div>
-                        ${review.comment ? `<p class="review-comment">${review.comment}</p>` : ''}
-                    </div>`;
-            });
-            html += '</div>';
-            return html;
-        }
-        
-        // Updated function to create popup content
-        function createPopupContent(pin, reviews = []) {
-            const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
-            const currentUsername = "{{ user.username }}";
-            
-            // Create category badge with appropriate styling
-            const categoryBadge = pin.category === 'dispensary' 
-                ? `<span class="badge bg-success category-badge"><i class="bi bi-shop"></i> Dispensary</span>`
-                : `<span class="badge bg-primary category-badge"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`;
-            
-            let popupContent = `
-                <div class="pin-popup">`;
-            
-            // Add the pin image if it exists
-            if (pin.image) {
-                // Debug to see what's coming in
-                console.log("Original image URL:", pin.image);
-                
-                let imageUrl = pin.image;
-                
-                // Check if the image path starts with /pin_images/ or is pin_images/
-                if (pin.image.startsWith('/pin_images/')) {
-                    // Keep the pin_images/ directory but add media prefix properly
-                    imageUrl = `${pin.image}`; // This gives /media/pin_images/filename.jpg
-                    console.log("Transformed to:", imageUrl);
-                }
-                // Handle paths that are just pin_images/ without leading slash
-                else if (pin.image.startsWith('pin_images/')) {
-                    imageUrl = `${pin.image}`; // This gives /media/pin_images/filename.jpg
-                    console.log("Transformed to:", imageUrl);
-                }
-                // Handle other direct paths without /media/ prefix
-                else if (pin.image.startsWith('/') && !pin.image.startsWith('/media/')) {
-                    imageUrl = `${pin.image}`;
-                    console.log("Added media prefix:", imageUrl);
-                }
-                
-                popupContent += `
-                    <div class="pin-image-container">
-                        <img src="${imageUrl}" class="pin-image" alt="${pin.title}">
-                        <button class="view-full-image" onclick="window.open('${imageUrl}', '_blank')">
-                            <i class="bi bi-arrows-fullscreen"></i>
-                        </button>
-                    </div>`;
-            }
-            
-            popupContent += `
-                    <h5 class="pin-title">${pin.title} ${categoryBadge}</h5>`;
-            
-            // Add rating display
-            popupContent += `
-                <div class="stars-display">
-                    ${getStarsHtml(pin.average_rating)}
-                    <span class="review-count">(${pin.rating_count} ${pin.rating_count === 1 ? 'review' : 'reviews'})</span>
-                </div>
-                <p class="pin-description">${pin.description}</p>`;
-
-            // Add amenities if available - add console.log to debug
-            console.log("Pin amenities:", {
-                has_seating: pin.has_seating, 
-                is_scenic: pin.is_scenic,
-                is_sheltered: pin.is_sheltered,
-                is_private: pin.is_private,
-                is_accessible: pin.is_accessible,
-                security_level: pin.security_level
-            });
-
-            // Fix the condition check to handle both boolean and string values properly
-            if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on' || 
-                pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on' || 
-                pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on' || 
-                pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on' || 
-                pin.security_level > 1 || 
-                pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on' || 
-                pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
-                
-                popupContent += `<div class="amenities-section mt-2 mb-2">`;
-                
-                // Improved condition checks for each amenity
-                if (pin.security_level) {
-                    const securityLabels = ['', 'Low', 'Medium', 'High'];
-                    const securityColors = ['', 'text-danger', 'text-warning', 'text-success'];
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Discretion level">
-                            <i class="bi bi-shield-lock ${securityColors[pin.security_level]}"></i> 
-                            ${securityLabels[pin.security_level]} discretion
-                        </span>`;
-                }
-                
-                if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on') {
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Has seating">
-                            <i class="bi bi-chair text-success"></i> Seating
-                        </span>`;
-                }
-                
-                if (pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on') {
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Scenic views">
-                            <i class="bi bi-image text-success"></i> Scenic
-                        </span>`;
-                }
-                
-                if (pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on') {
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Sheltered from elements">
-                            <i class="bi bi-umbrella text-success"></i> Sheltered
-                        </span>`;
-                }
-                
-                if (pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on') {
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Private spot">
-                            <i class="bi bi-eye-slash text-success"></i> Private
-                        </span>`;
-                }
-                
-                if (pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on') {
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Accessibility">
-                            <i class="bi bi-universal-access text-success"></i> Accessible
-                        </span>`;
-                } else if (pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
-                    popupContent += `
-                        <span class="badge bg-light text-dark me-1 mb-1" title="Limited accessibility">
-                            <i class="bi bi-universal-access-circle text-danger"></i> Limited access
-                        </span>`;
-                }
-                
-                popupContent += `</div>`;
-            }
-            
-            // Add buttons row
-            popupContent += `
-                <div class="mt-2 mb-2">
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
-                        class="btn btn-sm btn-success text-white" target="_blank">
-                        <i class="bi bi-geo"></i> Get Directions
-                    </a>
-                    <button class="btn btn-sm btn-info text-white show-reviews" data-pin="${pin.id}">
-                        <i class="bi bi-chat-left-text"></i> Show Reviews
-                    </button>`;
-            
-            // Add favorite button if user is authenticated
-            if (isAuthenticated) {
-                // Check if pin is favorited
-                const isFavorite = pin.is_favorite ? true : false;
-                const favBtnClass = isFavorite ? 'btn-danger' : 'btn-outline-danger';
-                const favIcon = isFavorite ? 'bi-heart-fill' : 'bi-heart';
-                
-                popupContent += `
-                    <button class="btn btn-sm ${favBtnClass} favorite-pin" data-pin="${pin.id}">
-                        <i class="bi ${favIcon}"></i>
-                    </button>`;
-            }
-
-            // Add delete button only if the current user is the pin owner
-            if (isAuthenticated && pin.username === currentUsername) {
-                popupContent += `
-                    <button class="btn btn-sm btn-danger text-white delete-pin" data-pin="${pin.id}">
-                        <i class="bi bi-trash"></i> Delete Pin
-                    </button>`;
-            }
-            
-            popupContent += `
-                </div>
-                <small class="pin-author">Added by: <a href="/profile/${pin.username}/" class="username-link">${pin.username}</a></small>`;
-            
-            // Add review form if user is authenticated
-            if (isAuthenticated) {
-                popupContent += createReviewFormHtml(pin.id);
-            } else {
-                popupContent += `<p class="mt-2 small"><a href="{% url 'mapapp:login' %}">Login</a> to leave a review</p>`;
-            }
-            
-            popupContent += `</div>`;
-            return popupContent;
-        }
-        
         // Create marker clusters
         var smokeCluster = L.markerClusterGroup({
             disableClusteringAtZoom: 16,
@@ -1101,28 +870,53 @@
             maxClusterRadius: 40
         });
 
-        // Update the pin loading code
+        // Update pin data
+        window.updateMarkerRating = function(pinId, rating, count) {
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                    layer.pin.average_rating = rating;
+                    layer.pin.rating_count = count;
+                }
+            });
+        };
+        
+        window.updateMarkerFavorite = function(pinId, isFavorite) {
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                    layer.pin.is_favorite = isFavorite;
+                }
+            });
+        };
+        
+        window.removeMarkerFromMap = function(pinId) {
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
+                    map.removeLayer(layer);
+                }
+            });
+        };
+
+        // Load pins from API
         fetch('{% url "mapapp:get_pins" %}')
             .then(response => response.json())
             .then(pins => {
-                console.log("First pin data:", pins[0]); // This will show all fields in the pin
                 pins.forEach(pin => {
-                    const popupContent = createPopupContent(pin);
-                    
                     // Choose icon based on category
                     let icon = smokeIcon; // Default
                     if (pin.category === 'dispensary') {
                         icon = dispensaryIcon;
                     }
-                      const marker = L.marker([pin.latitude, pin.longitude], {icon: icon})
-                        .bindPopup(popupContent, {
-                            closeButton: true,
-                            closeOnClick: false, // Prevent closing when clicking the popup
-                            autoPan: true
-                        });
-                        
-                    // Store pin data in the marker for later use
+                    
+                    // Create marker without popup
+                    const marker = L.marker([pin.latitude, pin.longitude], {icon: icon});
+                    
+                    // Store pin data in the marker
                     marker.pin = pin;
+                    
+                    // Add click handler to open modal
+                    marker.on('click', function() {
+                        openPinDetailModal(pin);
+                    });
                     
                     // Add to appropriate cluster
                     if (pin.category === 'dispensary') {
@@ -1136,11 +930,15 @@
                 map.addLayer(smokeCluster);
                 map.addLayer(dispensaryCluster);
                 
-                // Add event listeners for review functionality
-                setupReviewEventListeners(map);
-
-                // Dispatch event when pins are loaded
-                document.dispatchEvent(new Event('pinsLoaded'));
+                // Open pin from URL if specified
+                if (pinId) {
+                    const id = parseInt(pinId);
+                    pins.forEach(pin => {
+                        if (pin.id === id) {
+                            openPinDetailModal(pin);
+                        }
+                    });
+                }
             })
             .catch(error => console.error('Error loading pins:', error));
 
@@ -1151,202 +949,8 @@
         };
 
         L.control.layers(null, overlays).addTo(map);
-            
-        // Add event listeners for the star ratings and review submission
-        function setupReviewEventListeners(map) {
-            // Use event delegation for dynamically created elements
-            document.addEventListener('click', function(e) {
-                // Handle star selection
-                if (e.target.closest('.star')) {
-                    const star = e.target.closest('.star');
-                    const starsContainer = star.parentNode;
-                    const rating = parseInt(star.dataset.value);
-                    const ratingInput = starsContainer.parentNode.nextElementSibling;
-                    
-                    // Update star display
-                    const stars = starsContainer.querySelectorAll('.star');
-                    stars.forEach((s, index) => {
-                        const starIcon = s.querySelector('i');
-                        if (index < rating) {
-                            starIcon.className = 'bi bi-star-fill';
-                        } else {
-                            starIcon.className = 'bi bi-star';
-                        }
-                    });
-                    
-                    // Store the selected rating
-                    ratingInput.value = rating;
-                }
-                
-                // Handle review submission
-                if (e.target.closest('.submit-review')) {
-                    const submitBtn = e.target.closest('.submit-review');
-                    const pinId = submitBtn.dataset.pin;
-                    const reviewForm = submitBtn.closest('.review-form');
-                    const ratingInput = reviewForm.querySelector('.rating-value');
-                    const commentInput = reviewForm.querySelector('.review-comment');
-                    
-                    const rating = parseInt(ratingInput.value);
-                    const comment = commentInput.value.trim();
-                    
-                    if (rating === 0) {
-                        alert('Please select a rating before submitting.');
-                        return;
-                    }
-                    
-                    // Submit the review
-                    fetch(`/api/pins/${pinId}/reviews/create/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        body: JSON.stringify({
-                            rating: rating,
-                            comment: comment
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to submit review');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Find the marker for this pin and update its popup
-                        map.eachLayer(layer => {
-                            if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
-                                // Update the pin data with new rating info
-                                layer.pin.average_rating = data.average_rating;
-                                layer.pin.rating_count = data.rating_count;
-                                
-                                // Update popup content
-                                const popupContent = createPopupContent(layer.pin);
-                                layer.setPopupContent(popupContent);
-                                
-                                // Show a success message
-                                alert('Thank you for your review!');
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error submitting review:', error);
-                        alert('Failed to submit review. Please try again.');
-                    });
-                }
-                
-                // Handle show reviews button
-                if (e.target.closest('.show-reviews')) {
-                    const button = e.target.closest('.show-reviews');
-                    const pinId = button.dataset.pin;
-                    
-                    fetch(`/api/pins/${pinId}/reviews/`)
-                        .then(response => response.json())
-                        .then(data => {
-                            // Find the popup and append the reviews
-                            const popup = button.closest('.leaflet-popup-content');
-                            
-                            // Check if reviews section already exists, if so, remove it
-                            const existingReviews = popup.querySelector('.review-list');
-                            if (existingReviews) {
-                                existingReviews.remove();
-                                button.innerHTML = '<i class="bi bi-chat-left-text"></i> Show Reviews';
-                                return;
-                            }
-                            
-                            // Add reviews to popup
-                            const reviewListHtml = createReviewListHtml(data.reviews);
-                            popup.appendChild(document.createRange().createContextualFragment(reviewListHtml));
-                            button.innerHTML = '<i class="bi bi-chat-left-text"></i> Hide Reviews';
-                        })
-                        .catch(error => {
-                            console.error('Error loading reviews:', error);
-                        });
-                }
-                
-                // Handle delete pin button
-                if (e.target.closest('.delete-pin')) {
-                    const button = e.target.closest('.delete-pin');
-                    const pinId = button.dataset.pin;
-                    
-                    // Confirm before deleting
-                    if (confirm('Are you sure you want to delete this pin? This action cannot be undone.')) {
-                        fetch(`/api/pins/${pinId}/delete/`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRFToken': '{{ csrf_token }}'
-                            }
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Failed to delete pin');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            // Remove the pin from the map
-                            map.eachLayer(layer => {
-                                if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
-                                    map.removeLayer(layer);
-                                    
-                                    // Show success message
-                                    alert('Pin deleted successfully');
-                                }
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error deleting pin:', error);
-                            alert('Failed to delete pin. Please try again.');
-                        });
-                    }
-                }
-
-                // Handle favorite pin button
-                if (e.target.closest('.favorite-pin')) {
-                    const button = e.target.closest('.favorite-pin');
-                    const pinId = button.dataset.pin;
-                    
-                    fetch(`/api/pins/${pinId}/favorite/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to toggle favorite');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        // Update button appearance
-                        const icon = button.querySelector('i');
-                        if (data.status === 'added') {
-                            button.classList.remove('btn-outline-danger');
-                            button.classList.add('btn-danger');
-                            icon.className = 'bi bi-heart-fill';
-                        } else {
-                            button.classList.remove('btn-danger');
-                            button.classList.add('btn-outline-danger');
-                            icon.className = 'bi bi-heart';
-                        }
-                        
-                        // Store favorite status in pin object
-                        map.eachLayer(function(layer) {
-                            if (layer instanceof L.Marker && layer.pin && layer.pin.id === parseInt(pinId)) {
-                                layer.pin.is_favorite = (data.status === 'added');
-                            }
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error toggling favorite:', error);
-                        alert('Failed to update favorite. Please try again.');
-                    });
-                }
-            });
-        }
-
-        // Update the create pin function to include review functionality
+        
+        // Keep your existing pin creation functionality
         const savePinBtn = document.getElementById('savePinBtn');
         if (savePinBtn) {
             savePinBtn.addEventListener('click', function() {
@@ -1433,7 +1037,7 @@
                 });
             });
         }
-
+        
         // Pin placement mode functionality
         function togglePinPlacementMode() {
             pinPlacementMode = !pinPlacementMode;
@@ -1480,4 +1084,6 @@
         }
     });
 </script>
+<!-- Include the pin detail JS file -->
+<script src="{% static 'js/pin_detail.js' %}"></script>
 {% endblock %}
