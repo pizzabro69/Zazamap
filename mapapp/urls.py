@@ -27,5 +27,4 @@ urlpatterns = [
     path('messages/conversation/<int:conversation_id>/send/', views.send_message, name='send_message'),
     path('messages/conversation/<int:conversation_id>/new-messages/', views.get_new_messages, name='get_new_messages'),
     path('messages/unread-count/', views.get_unread_count, name='unread_message_count'),
-    path('mapapp/media/<path:file_path>', views.media, name='media'),
 ]

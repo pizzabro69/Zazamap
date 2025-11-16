@@ -244,6 +244,8 @@
         });
         
         {% if is_own_profile %}
+        const profileCsrfToken = document.querySelector('#profileForm input[name="csrfmiddlewaretoken"]')?.value || '';
+
         // Load favorites tab content
         document.querySelector('#favorites-tab').addEventListener('click', function() {
             const favoritesContent = document.getElementById('favorites-content');
@@ -296,7 +298,8 @@
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': profileCsrfToken
                 }
             })
             .then(response => response.json())

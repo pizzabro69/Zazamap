@@ -450,6 +450,17 @@
 
 {% block extra_js %}
 <script>    document.addEventListener('DOMContentLoaded', function() {
+        function getCsrfToken() {
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                return csrfInput.value;
+            }
+            const match = document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/);
+            return match ? decodeURIComponent(match.pop()) : '';
+        }
+
+    const csrfToken = getCsrfToken();
+    const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
         // Initialize the map with responsive zoom level
         const isMobile = window.innerWidth <= 768;
         const defaultZoom = isMobile ? 4 : 5; // Use smaller zoom level on mobile
@@ -675,8 +686,9 @@
             return div;
         };
         
-        // Add pin control for all users
-        addPinControl.addTo(map);
+        if (isAuthenticated) {
+            addPinControl.addTo(map);
+        }
 
         {% if user.is_authenticated %}
         favoritesControl.addTo(map);
@@ -907,7 +919,6 @@
         
         // Updated function to create popup content
         function createPopupContent(pin, reviews = []) {
-            const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
             const currentUsername = "{{ user.username }}";
             
             // Create category badge with appropriate styling
@@ -1199,7 +1210,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': '{{ csrf_token }}'
+                            'X-CSRFToken': csrfToken
                         },
                         body: JSON.stringify({
                             rating: rating,
@@ -1274,7 +1285,7 @@
                         fetch(`/api/pins/${pinId}/delete/`, {
                             method: 'DELETE',
                             headers: {
-                                'X-CSRFToken': '{{ csrf_token }}'
+                                'X-CSRFToken': csrfToken
                             }
                         })
                         .then(response => {
@@ -1309,7 +1320,7 @@
                     fetch(`/api/pins/${pinId}/favorite/`, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
+                            'X-CSRFToken': csrfToken
                         }
                     })
                     .then(response => {
@@ -1381,6 +1392,9 @@
                 // Send data to backend API
                 fetch('{% url "mapapp:create_pin" %}', {
                     method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
                     body: formData
                 })
                 .then(response => {

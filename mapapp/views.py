@@ -1,21 +1,29 @@
-import os
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
 from django.contrib import messages
 from .models import MapPin, Review, Favorite, Profile, Conversation, Message
 from django.utils import timezone
 import json
+from django.db.models import Avg, Count
 
 def home(request):
     return render(request, 'mapapp/home.html')
 
 def get_pins(request):
-    pins = MapPin.objects.all()
+    pins = MapPin.objects.select_related('user').annotate(
+        avg_rating=Avg('reviews__rating'),
+        review_count=Count('reviews')
+    )
+
+    user_favorite_ids = set()
+    if request.user.is_authenticated:
+        user_favorite_ids = set(
+            Favorite.objects.filter(user=request.user).values_list('pin_id', flat=True)
+        )
+
     pins_data = []
     
     for pin in pins:
@@ -28,10 +36,10 @@ def get_pins(request):
             'category': pin.category,
             'username': pin.user.username if pin.user else 'Anonymous',
             'created_at': pin.created_at.isoformat(),
-            'image': pin.image.url if pin.image else None,  # Make sure this returns the full URL
-            'average_rating': pin.rating_set.aggregate(Avg('rating'))['rating__avg'] or 0 if hasattr(pin, 'rating_set') else 0,
-            'rating_count': pin.rating_set.count() if hasattr(pin, 'rating_set') else 0,
-            'is_favorite': request.user.is_authenticated and pin.favorite_set.filter(user=request.user).exists() if hasattr(pin, 'favorite_set') else False,
+            'image': pin.image.url if pin.image else None,
+            'average_rating': round(pin.avg_rating or 0, 2),
+            'rating_count': pin.review_count,
+            'is_favorite': pin.id in user_favorite_ids,
             
             # Add all amenity fields
             'has_seating': pin.has_seating,
@@ -44,11 +52,11 @@ def get_pins(request):
     
     return JsonResponse(pins_data, safe=False)
 
-@csrf_exempt
+@login_required
 def create_pin(request):
     if request.method == 'POST':
-        # Add logging to debug form data
-        print("Form data:", request.POST)
+        def checkbox_to_bool(value):
+            return str(value).lower() in {'true', 'on', '1'}
         
         pin = MapPin(
             title=request.POST.get('title'),
@@ -56,14 +64,14 @@ def create_pin(request):
             latitude=float(request.POST.get('latitude')),
             longitude=float(request.POST.get('longitude')),
             category=request.POST.get('category'),
-            user=request.user if request.user.is_authenticated else None,
+            user=request.user,
             
             # Process amenity fields properly
-            has_seating=request.POST.get('has_seating') == 'on',
-            is_scenic=request.POST.get('is_scenic') == 'on',
-            is_sheltered=request.POST.get('is_sheltered') == 'on',
-            is_private=request.POST.get('is_private') == 'on',
-            is_accessible=request.POST.get('is_accessible') == 'on',
+            has_seating=checkbox_to_bool(request.POST.get('has_seating')),
+            is_scenic=checkbox_to_bool(request.POST.get('is_scenic')),
+            is_sheltered=checkbox_to_bool(request.POST.get('is_sheltered')),
+            is_private=checkbox_to_bool(request.POST.get('is_private')),
+            is_accessible=checkbox_to_bool(request.POST.get('is_accessible')),
             security_level=int(request.POST.get('security_level', 1))
         )
         
@@ -89,12 +97,12 @@ def create_pin(request):
             'is_sheltered': pin.is_sheltered,
             'is_private': pin.is_private,
             'is_accessible': pin.is_accessible,
-            'security_level': pin.security_level
+            'security_level': pin.security_level,
+            'is_favorite': False
         })
     
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-@csrf_exempt
 @login_required
 def create_review(request, pin_id):
     if request.method == 'POST':
@@ -129,7 +137,6 @@ def create_review(request, pin_id):
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-@csrf_exempt
 @login_required
 def delete_pin(request, pin_id):
     if request.method == 'DELETE':
@@ -167,7 +174,6 @@ def get_reviews(request, pin_id):
         'rating_count': reviews.count()
     })
 
-@csrf_exempt
 @login_required
 def toggle_favorite(request, pin_id):
     if request.method == 'POST':
@@ -313,20 +319,6 @@ def update_profile(request):
     
     # GET request redirects to profile
     return redirect('mapapp:my_profile')
-
-def media(request, file_path=None):
-    from django.conf import settings as cfg
-    media_root = getattr(cfg, 'MEDIA_ROOT', None)
-
-    if not media_root:
-        return HttpResponseBadRequest('Invalid Media Root Configuration')
-    if not file_path:
-        return HttpResponseBadRequest('Invalid File Path')
-
-    with open(os.path.join(media_root, file_path), 'rb') as doc:
-        response = HttpResponse(doc.read(), content_type='application/doc')
-        response['Content-Disposition'] = 'filename=%s' % (file_path.split('/')[-1])
-        return response
 
 @login_required
 def inbox_view(request):

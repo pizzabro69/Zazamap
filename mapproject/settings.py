@@ -21,15 +21,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*1vtk!*6o#u++04oljkcx2artb2oaj380eo*3+!&#7t6m6bhim'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-insecure-secret-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['zaza-map.social', '127.18.0.4', 'localhost', '127.0.0.1']
-CSRF_TRUSTED_ORIGINS = [
-    "https://zaza-map.social/",
-]
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get(
+    'DJANGO_ALLOWED_HOSTS',
+    'zaza-map.social,127.18.0.4,localhost,127.0.0.1'
+).split(',') if host.strip()]
+
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.environ.get(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    'https://zaza-map.social'
+).split(',') if origin.strip()]
 
 # Application definition
 
@@ -123,7 +128,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Add this line
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -131,5 +136,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Add this line
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Media files (Uploaded images)
-MEDIA_ROOT = os.path.abspath(__file__ + "../../../media")
-MEDIA_URL = '/mapapp/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
