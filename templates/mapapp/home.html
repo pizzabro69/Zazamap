@@ -3,104 +3,131 @@
 {% block title %}Zaza Map - Home{% endblock %}
 
 {% block content %}
-<div class="map-container">
-    <div id="map"></div>
-    <div class="pin-placement-instructions">Click on the map to place your pin</div>
-</div>
+<div id="map"></div>
+<div class="pin-placement-instructions">Click on the map to place your pin</div>
+{% endblock %}
 
+{% block body_end %}
 <div class="modal fade" id="addPinModal" tabindex="-1" aria-labelledby="addPinModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addPinModalLabel">Add New Pin</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content pin-form-modal">
+            <div class="pin-form-header">
+                <div>
+                    <p class="pin-form-eyebrow">Share the vibe</p>
+                    <h5 class="modal-title" id="addPinModalLabel">Drop a new pin</h5>
+                    <p class="pin-form-subtitle">Tap the map first to set the coordinates, then add the story.</p>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="addPinForm" enctype="multipart/form-data">
+            <div class="modal-body pin-form-body">
+                <div class="pin-form-info-card">
+                    <div class="pin-form-info-icon">
+                        <i class="bi bi-geo-alt"></i>
+                    </div>
+                    <div>
+                        <p class="pin-form-info-title">Need a quick reminder?</p>
+                        <p class="pin-form-info-copy">Click anywhere on the map to drop the marker. We’ll auto-fill the latitude and longitude for you.</p>
+                    </div>
+                </div>
+                <form id="addPinForm" class="pin-form" enctype="multipart/form-data">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="pinTitle" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="pinTitle" name="title" required>
+                    <div class="pin-form-section">
+                        <label for="pinTitle" class="pin-section-label">Title</label>
+                        <p class="pin-section-helper">Give your spot a name that captures the mood.</p>
+                        <input type="text" class="form-control pin-input" id="pinTitle" name="title" placeholder="Ex. Rooftop sunset sesh" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="pinDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="pinDescription" name="description" rows="3"></textarea>
+                    <div class="pin-form-section">
+                        <label for="pinDescription" class="pin-section-label">Description</label>
+                        <p class="pin-section-helper">What makes this place special? Add any guidance future visitors should know.</p>
+                        <textarea class="form-control pin-input" id="pinDescription" name="description" rows="3" placeholder="Peaceful courtyard with string lights and open seating..."></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Pin Type</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="category" id="categorySmoke" value="smoke" checked>
-                            <label class="form-check-label" for="categorySmoke">
-                                <i class="bi bi-emoji-smile"></i> Smoke Location
+                    <div class="pin-form-section">
+                        <label class="pin-section-label">Pin Type</label>
+                        <p class="pin-section-helper">Choose the vibe so folks instantly know what to expect.</p>
+                        <div class="pin-chip-grid two-col">
+                            <input class="btn-check" type="radio" name="category" id="categorySmoke" value="smoke" checked>
+                            <label class="pin-chip" for="categorySmoke">
+                                <span class="chip-icon bg-mint"><i class="bi bi-emoji-sunglasses"></i></span>
+                                <span>
+                                    <span class="chip-title">Smoke spot</span>
+                                    <span class="chip-subtitle">Casual sesh, chill vibes</span>
+                                </span>
                             </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="category" id="categoryDispensary" value="dispensary">
-                            <label class="form-check-label" for="categoryDispensary">
-                                <i class="bi bi-shop"></i> Dispensary
+                            <input class="btn-check" type="radio" name="category" id="categoryDispensary" value="dispensary">
+                            <label class="pin-chip" for="categoryDispensary">
+                                <span class="chip-icon bg-indigo"><i class="bi bi-shop"></i></span>
+                                <span>
+                                    <span class="chip-title">Dispensary</span>
+                                    <span class="chip-subtitle">Licensed storefront or lounge</span>
+                                </span>
                             </label>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Amenities & Features</label>
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="hasSeating" name="has_seating">
-                                    <label class="form-check-label" for="hasSeating">
-                                        <i class="bi bi-chair"></i> Seating
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="isScenic" name="is_scenic">
-                                    <label class="form-check-label" for="isScenic">
-                                        <i class="bi bi-image"></i> Scenic view
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="isSheltered" name="is_sheltered">
-                                    <label class="form-check-label" for="isSheltered">
-                                        <i class="bi bi-umbrella"></i> Sheltered
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="isPrivate" name="is_private">
-                                    <label class="form-check-label" for="isPrivate">
-                                        <i class="bi bi-eye-slash"></i> Private
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="isAccessible" name="is_accessible" checked>
-                                    <label class="form-check-label" for="isAccessible">
-                                        <i class="bi bi-universal-access"></i> Accessible
-                                    </label>
-                                </div>
-                            </div>
+                    <div class="pin-form-section">
+                        <label class="pin-section-label">Amenities & Features</label>
+                        <p class="pin-section-helper">Toggle anything that applies. These double as filters for folks nearby.</p>
+                        <div class="pin-amenity-grid">
+                            <input class="btn-check" type="checkbox" id="hasSeating" name="has_seating" autocomplete="off">
+                            <label class="amenity-chip" for="hasSeating">
+                                <i class="bi bi-chair"></i>
+                                <span>Seating</span>
+                            </label>
+
+                            <input class="btn-check" type="checkbox" id="isScenic" name="is_scenic" autocomplete="off">
+                            <label class="amenity-chip" for="isScenic">
+                                <i class="bi bi-image"></i>
+                                <span>Scenic view</span>
+                            </label>
+
+                            <input class="btn-check" type="checkbox" id="isSheltered" name="is_sheltered" autocomplete="off">
+                            <label class="amenity-chip" for="isSheltered">
+                                <i class="bi bi-umbrella"></i>
+                                <span>Sheltered</span>
+                            </label>
+
+                            <input class="btn-check" type="checkbox" id="isPrivate" name="is_private" autocomplete="off">
+                            <label class="amenity-chip" for="isPrivate">
+                                <i class="bi bi-eye-slash"></i>
+                                <span>Private</span>
+                            </label>
+
+                            <input class="btn-check" type="checkbox" id="isAccessible" name="is_accessible" checked autocomplete="off">
+                            <label class="amenity-chip" for="isAccessible">
+                                <i class="bi bi-universal-access"></i>
+                                <span>Accessible</span>
+                            </label>
                         </div>
-                        <div class="mt-2">
-                            <label for="securityLevel" class="form-label">Discretion Level</label>
-                            <select id="securityLevel" name="security_level" class="form-select form-select-sm">
-                                <option value="1">Low - Obvious smoking spot</option>
-                                <option value="2">Medium - Somewhat discreet</option>
-                                <option value="3">High - Very discreet</option>
+                        <div class="pin-select-group">
+                            <label for="securityLevel" class="pin-section-label">Discretion level</label>
+                            <select id="securityLevel" name="security_level" class="form-select pin-input">
+                                <option value="1">Low · Obvious smoking spot</option>
+                                <option value="2">Medium · Somewhat discreet</option>
+                                <option value="3">High · Very discreet</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="pinImage" class="form-label">Image (optional)</label>
-                        <input type="file" class="form-control" id="pinImage" name="image" accept="image/*">
+                    <div class="pin-form-section">
+                        <label for="pinImage" class="pin-section-label">Add a vibe pic <span class="optional-pill">Optional</span></label>
+                        <p class="pin-section-helper">Landscape photos work best. Keep it under 4 MB.</p>
+                        <input type="file" class="form-control pin-input pin-file-input" id="pinImage" name="image" accept="image/*">
+                    </div>
+
+                    <div class="pin-location-hint">
+                        <i class="bi bi-broadcast"></i>
+                        <span>Latitude and longitude are captured from your last tap on the map.</span>
                     </div>
                     <input type="hidden" id="pinLatitude" name="latitude">
                     <input type="hidden" id="pinLongitude" name="longitude">
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="savePinBtn">Save Pin</button>
+            <div class="modal-footer pin-form-footer">
+                <button type="button" class="btn pin-form-cancel" data-bs-dismiss="modal">Not now</button>
+                <button type="button" class="btn pin-form-submit" id="savePinBtn">
+                    <span>Save this pin</span>
+                    <i class="bi bi-arrow-up-right"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -109,86 +136,442 @@
 
 {% block extra_css %}
 <style>
+    :root {
+        --pin-ink: #081915;
+        --pin-card: #112c25;
+        --pin-forest: #1d7d63;
+        --pin-leaf: #64d5a5;
+        --pin-mint: #34d399;
+        --pin-cream: #fef9c3;
+        --pin-muted: #9fb9b4;
+        --pin-outline: rgba(123, 220, 181, 0.35);
+    }
+
+    /* Pin creation modal styling */
+    .pin-form-modal {
+        border: none;
+        border-radius: 28px;
+        overflow: hidden;
+        background: radial-gradient(circle at top right, rgba(50, 115, 97, 0.65), rgba(6, 20, 16, 0.95));
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.45);
+        color: #f3fff9;
+    }
+
+    .pin-form-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 28px 32px 16px;
+        background: linear-gradient(120deg, rgba(8, 25, 21, 0.95), rgba(10, 53, 42, 0.95));
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .pin-form-eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+        font-size: 11px;
+        color: var(--pin-muted);
+        margin-bottom: 6px;
+    }
+
+    .pin-form-subtitle {
+        color: rgba(255,255,255,0.75);
+        margin: 6px 0 0;
+        font-size: 14px;
+    }
+
+    .pin-form-body {
+        padding: 24px 32px 8px;
+        background: rgba(3, 13, 10, 0.85);
+    }
+
+    .pin-form-info-card {
+        display: flex;
+        gap: 14px;
+        padding: 14px 18px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.05);
+        border: 1px dashed rgba(255,255,255,0.15);
+        margin-bottom: 18px;
+        align-items: center;
+    }
+
+    .pin-form-info-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: rgba(100, 213, 165, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: #64d5a5;
+    }
+
+    .pin-form-info-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .pin-form-info-copy {
+        margin: 0;
+        color: rgba(255,255,255,0.7);
+        font-size: 13px;
+    }
+
+    .pin-form-section {
+        margin-bottom: 20px;
+    }
+
+    .pin-section-label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 4px;
+        color: #fefce8;
+    }
+
+    .pin-section-helper {
+        font-size: 13px;
+        color: rgba(255,255,255,0.7);
+        margin-bottom: 12px;
+    }
+
+    .pin-input {
+        background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 14px;
+        color: #fefce8;
+        padding: 12px 14px;
+        font-size: 14px;
+        transition: border 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .pin-input:focus {
+        border-color: rgba(100,213,165,0.9);
+        box-shadow: 0 0 0 2px rgba(100,213,165,0.15);
+        background: rgba(0,0,0,0.25);
+        color: #fff;
+    }
+
+    .pin-chip-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .pin-chip-grid.two-col {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .pin-chip {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.15);
+        cursor: pointer;
+        transition: transform 0.15s ease, border 0.15s ease, background 0.15s ease;
+    }
+
+    .btn-check:checked + .pin-chip {
+        border-color: rgba(100,213,165,0.9);
+        background: rgba(100,213,165,0.12);
+        transform: translateY(-1px);
+    }
+
+    .chip-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: #fff;
+    }
+
+    .bg-mint {
+        background: linear-gradient(135deg, #34d399, #059669);
+    }
+
+    .bg-indigo {
+        background: linear-gradient(135deg, #818cf8, #4338ca);
+    }
+
+    .chip-title {
+        display: block;
+        font-weight: 600;
+        color: #fefce8;
+    }
+
+    .chip-subtitle {
+        display: block;
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+    }
+
+    .pin-amenity-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .amenity-chip {
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.15);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: border 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    }
+
+    .btn-check:checked + .amenity-chip {
+        border-color: rgba(100,213,165,0.9);
+        background: rgba(52, 211, 153, 0.18);
+        transform: translateY(-1px);
+    }
+
+    .pin-select-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .optional-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0.15rem 0.6rem;
+        border-radius: 999px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #fefce8;
+    }
+
+    .pin-file-input::-webkit-file-upload-button {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: #fefce8;
+        border-radius: 10px;
+        margin-right: 12px;
+    }
+
+    .pin-location-hint {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px dashed rgba(255,255,255,0.15);
+        color: rgba(255,255,255,0.75);
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .pin-form-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 20px 32px 28px;
+        background: rgba(2, 10, 8, 0.92);
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .pin-form-cancel {
+        flex: 1;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: transparent;
+        color: #e0f2f1;
+        font-weight: 600;
+        padding: 12px;
+    }
+
+    .pin-form-cancel:hover {
+        background: rgba(255,255,255,0.05);
+        color: #fff;
+    }
+
+    .pin-form-submit {
+        flex: 1;
+        border-radius: 14px;
+        border: none;
+        background: linear-gradient(135deg, #34d399, #047857);
+        color: #04150f;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        box-shadow: 0 20px 40px rgba(4, 120, 87, 0.35);
+    }
+
+    .pin-form-submit i {
+        font-size: 1rem;
+    }
+
+    .pin-form-submit:hover {
+        filter: brightness(1.05);
+        color: #04150f;
+    }
+
+    @media (max-width: 576px) {
+        .pin-form-header,
+        .pin-form-body,
+        .pin-form-footer {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .pin-form-footer {
+            flex-direction: column;
+        }
+
+        .pin-form-cancel,
+        .pin-form-submit {
+            width: 100%;
+        }
+    }
+
     /* Custom styling for map pin popups */
     .pin-popup {
-        background-color: white;
-        padding: 5px;
-        border-radius: 4px;
-        min-width: 200px;
+        background: linear-gradient(140deg, rgba(8, 25, 21, 0.98), rgba(18, 61, 51, 0.96));
+        padding: 16px;
+        border-radius: 18px;
+        min-width: 240px;
+        border: 1px solid var(--pin-outline);
+        color: #f3fff9;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.45);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pin-popup::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle at top right, rgba(52, 211, 153, 0.18), transparent 55%);
+    }
+
+    .pin-popup > * {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .pin-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+
+    .pin-header-text {
+        flex: 1;
     }
     
     .pin-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        border-bottom: 1px solid #eaeaea;
-        padding-bottom: 5px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 4px 0 0;
+        color: #fefce8;
     }
     
     .pin-description {
-        color: #333;
-        margin-bottom: 10px;
+        color: #d9ebe0;
+        margin-bottom: 12px;
         font-size: 14px;
+        line-height: 1.45;
     }
     
     .pin-author {
-        color: #666;
-        display: block;
-        margin-top: 5px;
-        font-style: italic;
+        color: #fefce8;
+        font-style: normal;
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .pin-author-label {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 10px;
+        color: var(--pin-muted);
     }
     
     /* Make sure popup images don't overflow */
     .leaflet-popup-content img {
         max-width: 100%;
-        border-radius: 3px;
+        border-radius: 12px;
     }
       /* Override Leaflet's default popup styling */
     .leaflet-popup-content-wrapper {
-        background-color: white;
-        border-radius: 5px;
-        box-shadow: 0 3px 14px rgba(0,0,0,0.15);
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
     }
     
+    .leaflet-popup-content {
+        margin: 5px;
+        width: auto !important;
+        font-size: 13px;
+    }
+
     /* Mobile responsive styling */
     @media (max-width: 768px) {
         .pin-popup {
             min-width: 100%;
-            padding: 3px;
+            padding: 14px;
+            max-width: 280px;
         }
         
         .pin-title {
-            font-size: 14px;
+            font-size: 1rem;
         }
         
         .pin-description {
-            font-size: 12px;
+            font-size: 13px;
         }
         
         .leaflet-popup-content {
             margin: 8px;
-            max-width: 240px;
+            max-width: 260px;
         }
         
         .btn-sm {
             padding: 0.2rem 0.4rem;
             font-size: 0.75rem;
         }
-        padding: 5px;
-        max-width: 280px;  /* Limit maximum width */
-    }
-    
-    .leaflet-popup-content {
-        margin: 5px;
-        width: auto !important;  /* Override Leaflet's inline width */
-        font-size: 13px;  /* Smaller font size */
+
+        .pin-actions {
+            flex-direction: column;
+        }
+
+        .pin-action-btn {
+            width: 100%;
+        }
+
+        .pin-rating-chip {
+            min-width: auto;
+            text-align: left;
+        }
     }
 
     /* Rating star styles */
     .stars-container {
         display: inline-block;
-        color: #f8d64e;
+        color: #fcd34d;
         position: relative;
         margin-bottom: 10px;
     }
@@ -204,8 +587,8 @@
     }
     
     .review-count {
-        color: #666;
-        font-size: 14px;
+        color: var(--pin-muted);
+        font-size: 13px;
         margin-left: 5px;
     }
     
@@ -236,52 +619,188 @@
         max-width: 100%;
         max-height: 180px;
         object-fit: cover;
-        border-radius: 3px;
+        border-radius: 16px;
         display: block;
-        margin: 0 auto 10px auto;
+        margin: 0 auto 12px auto;
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
     }
 
     .pin-image {
-        max-height: 120px;
+        max-height: 160px;
+        width: 100%;
     }
 
     .pin-image-container {
         position: relative;
         text-align: center;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        border-radius: 18px;
+        overflow: hidden;
     }
 
     .view-full-image {
         position: absolute;
-        bottom: 5px;
-        right: 5px;
-        background-color: rgba(0,0,0,0.6);
+        bottom: 10px;
+        right: 10px;
+        background-color: rgba(6, 17, 15, 0.75);
         color: white;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    .pin-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+        margin: 12px 0;
+    }
+
+    .section-heading {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--pin-muted);
+        margin-bottom: 6px;
+    }
+
+    .pin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .pin-action-btn {
+        flex: 1 1 150px;
+        background: linear-gradient(135deg, #22c55e, #15803d);
+        border-radius: 14px;
         border: none;
-        border-radius: 4px;
-        padding: 3px 6px;
-        font-size: 12px;
+        color: white;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .delete-pin {
-        margin-left: 5px;
+    .pin-action-btn.secondary {
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #d1fae5;
     }
 
-    .pin-popup .btn-danger:hover {
-        background-color: #dc3545;
+    .pin-action-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 15px 30px rgba(15, 118, 110, 0.35);
+        color: inherit;
     }
 
-    .pin-popup .btn {
-        padding: 3px 6px;
-        font-size: 12px;
+    .pin-icon-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.25);
+        background: rgba(255,255,255,0.08);
+        color: #fefce8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .pin-icon-btn.is-favorite {
+        background: rgba(220, 38, 38, 0.18);
+        color: #fecaca;
+        border-color: rgba(248, 113, 113, 0.4);
+    }
+
+    .pin-icon-btn.delete-pin {
+        background: rgba(239, 68, 68, 0.15);
+        color: #fecaca;
+        border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    .pin-icon-btn:hover {
+        transform: translateY(-1px) scale(1.02);
     }
 
     .category-badge {
-        margin-left: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         font-size: 12px;
-        vertical-align: middle;
-        padding: 4px 8px;
-        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #d1fae5;
+        background: rgba(255,255,255,0.08);
+    }
+
+    .category-smoke {
+        border-color: rgba(16, 185, 129, 0.4);
+        background: rgba(16, 185, 129, 0.18);
+        color: #a7f3d0;
+    }
+
+    .category-dispensary {
+        border-color: rgba(59, 130, 246, 0.4);
+        background: rgba(59, 130, 246, 0.18);
+        color: #bfdbfe;
+    }
+
+    .pin-rating-chip {
+        min-width: 125px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 14px;
+        padding: 6px 10px;
+        text-align: right;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .pin-rating-chip .chip-stars i {
+        color: #fcd34d;
+        margin-left: 2px;
+    }
+
+    .pin-rating-chip .no-rating {
+        color: rgba(255,255,255,0.4);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+    }
+
+    .pin-rating-count {
+        display: block;
+        font-size: 12px;
+        margin-top: 2px;
+        color: var(--pin-muted);
+    }
+
+    .pin-footer {
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .username-link {
+        color: #a7f3d0;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .username-link:hover {
+        color: #fef3c7;
+        text-decoration: underline;
     }
 
     .map-loading {
@@ -323,6 +842,59 @@
         box-shadow: 0 0 0 2px white;
     }
 
+    .map-container {
+        background: radial-gradient(circle at top right, rgba(11, 38, 27, 0.9), rgba(2, 12, 9, 0.9));
+        padding: 18px 18px 18px 0;
+    }
+
+    #map {
+        position: relative;
+        background-color: #071712;
+        border-radius: 28px 0 0 28px;
+        box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+    }
+
+    #map::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(140deg, rgba(25, 74, 55, 0.28), rgba(5, 17, 12, 0.4)),
+                    radial-gradient(circle at 25% 15%, rgba(94, 234, 212, 0.25), transparent 60%);
+        mix-blend-mode: soft-light;
+        opacity: 0.45;
+        z-index: 3;
+    }
+
+    .leaflet-container {
+        background: transparent !important;
+    }
+
+    .leaflet-pane.leaflet-tile-pane {
+        filter: hue-rotate(100deg) saturate(1.15) brightness(1.05) contrast(1.02);
+        transition: filter 0.4s ease;
+    }
+
+    .leaflet-pane.leaflet-tile-pane:hover {
+        filter: hue-rotate(100deg) saturate(1.25) brightness(1.1) contrast(1.05);
+    }
+
+    .leaflet-control-container .leaflet-bar a,
+    .leaflet-touch .leaflet-bar a {
+        background: rgba(13, 39, 28, 0.85) !important;
+        border: 1px solid rgba(52, 211, 153, 0.35) !important;
+        color: #a7f3d0 !important;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35);
+        transition: transform 0.15s ease, border 0.15s ease;
+    }
+
+    .leaflet-control-container .leaflet-bar a:hover {
+        transform: translateY(-1px);
+        border-color: rgba(101, 227, 182, 0.9) !important;
+        color: #fef9c3 !important;
+    }
+
     .favorites-panel {
         position: absolute;
         top: 10px; /* Changed from 80px to 10px since filter is gone */
@@ -359,13 +931,19 @@
     .amenities-section {
         display: flex;
         flex-wrap: wrap;
+        gap: 6px;
     }
 
     .amenities-section .badge {
-        margin-right: 5px;
-        margin-bottom: 5px;
-        font-weight: normal;
-        padding: 5px 8px;
+        margin: 0;
+        font-weight: 500;
+        padding: 5px 10px;
+        background: rgba(255,255,255,0.08) !important;
+        color: #fefce8 !important;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.2);
+        font-size: 11px;
+        letter-spacing: 0.01em;
     }
 
     @media (max-width: 768px) {
@@ -386,9 +964,7 @@
         /* Make amenity badges smaller */
         .amenities-section .badge {
             font-size: 10px;
-            padding: 3px 5px;
-            margin-right: 3px;
-            margin-bottom: 3px;
+            padding: 4px 8px;
         }
     }
 
@@ -427,6 +1003,17 @@
         background-color: #1c3326 !important;
         color: #99e81a !important;
     }
+
+    .place-pin-button {
+        background-color: rgba(15, 36, 27, 0.95) !important;
+        color: #8ef4c2 !important;
+        font-weight: 600;
+    }
+
+    .place-pin-button.loading {
+        opacity: 0.6;
+        cursor: wait;
+    }
     
     .pin-placement-mode {
         cursor: crosshair !important;
@@ -444,6 +1031,11 @@
         z-index: 1000;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         display: none;
+    }
+
+    .modal-backdrop {
+        background: rgba(3, 12, 9, 0.82);
+        backdrop-filter: blur(8px);
     }
 </style>
 {% endblock %}
@@ -475,7 +1067,7 @@
         
         // Pin placement mode state
         var pinPlacementMode = false;
-        var pinPlacementMarker = null;
+    var pinPlacementMarker = null;
         var pinPlacementInstructions = null;
         
         // Add zoom controls to top right on mobile
@@ -501,10 +1093,14 @@
             }
         }
         
-        // Add tile layer (OpenStreetMap)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20
-        }).addTo(map);        // Handle map clicks for popups and pin placement
+        // Add tile layer (dark themed to match palette)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20,
+            opacity: 0.92,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors & CARTO'
+        }).addTo(map);
+
+        // Handle map clicks for popups and pin placement
         map.on('click', function(e) {
             // Close any open popups when clicking on the map
             map.closePopup();
@@ -685,9 +1281,26 @@
             
             return div;
         };
+
+        // Add control to drop a pin at the user's current location
+        var placePinControl = L.control({position: 'bottomright'});
+        placePinControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.innerHTML = `<a href="#" title="Drop pin at my location" role="button" aria-label="Drop pin at my location" class="place-pin-button">
+                <i class="bi bi-geo-fill"></i></a>`;
+
+            div.onclick = function() {
+                const buttonEl = div.querySelector('.place-pin-button');
+                placePinAtCurrentLocation(buttonEl);
+                return false;
+            };
+
+            return div;
+        };
         
         if (isAuthenticated) {
             addPinControl.addTo(map);
+            placePinControl.addTo(map);
         }
 
         {% if user.is_authenticated %}
@@ -920,125 +1533,116 @@
         // Updated function to create popup content
         function createPopupContent(pin, reviews = []) {
             const currentUsername = "{{ user.username }}";
+            const ratingCountLabel = pin.rating_count === 1 ? 'review' : 'reviews';
+            const hasAverageRating = pin.rating_count > 0 && pin.average_rating !== null && pin.average_rating !== undefined;
+            const averageRatingLabel = hasAverageRating ? Number(pin.average_rating).toFixed(1) : null;
+            const ratingSummary = averageRatingLabel ? `${averageRatingLabel} · ${pin.rating_count} ${ratingCountLabel}` : 'New spot';
+            const ratingStars = hasAverageRating ? getStarsHtml(pin.average_rating) : '<span class="no-rating">Be first</span>';
+            const pinDescription = pin.description && pin.description.trim().length > 0 ? pin.description : 'No description added yet.';
             
             // Create category badge with appropriate styling
             const categoryBadge = pin.category === 'dispensary' 
-                ? `<span class="badge bg-success category-badge"><i class="bi bi-shop"></i> Dispensary</span>`
-                : `<span class="badge bg-primary category-badge"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`;
+                ? `<span class="category-badge category-dispensary"><i class="bi bi-shop"></i> Dispensary</span>`
+                : `<span class="category-badge category-smoke"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`;
             
             let popupContent = `
                 <div class="pin-popup">`;
             
             // Add the pin image if it exists
             if (pin.image) {
-                // Debug to see what's coming in
-                console.log("Original image URL:", pin.image);
-                
                 let imageUrl = pin.image;
                 
                 // Check if the image path starts with /pin_images/ or is pin_images/
-                if (pin.image.startsWith('/pin_images/')) {
-                    // Keep the pin_images/ directory but add media prefix properly
-                    imageUrl = `${pin.image}`; // This gives /media/pin_images/filename.jpg
-                    console.log("Transformed to:", imageUrl);
-                }
-                // Handle paths that are just pin_images/ without leading slash
-                else if (pin.image.startsWith('pin_images/')) {
-                    imageUrl = `${pin.image}`; // This gives /media/pin_images/filename.jpg
-                    console.log("Transformed to:", imageUrl);
+                if (pin.image.startsWith('/pin_images/') || pin.image.startsWith('pin_images/')) {
+                    imageUrl = `${pin.image}`;
                 }
                 // Handle other direct paths without /media/ prefix
                 else if (pin.image.startsWith('/') && !pin.image.startsWith('/media/')) {
                     imageUrl = `${pin.image}`;
-                    console.log("Added media prefix:", imageUrl);
                 }
                 
                 popupContent += `
                     <div class="pin-image-container">
                         <img src="${imageUrl}" class="pin-image" alt="${pin.title}">
-                        <button class="view-full-image" onclick="window.open('${imageUrl}', '_blank')">
+                        <button class="view-full-image" type="button" aria-label="Open full image" onclick="window.open('${imageUrl}', '_blank')">
                             <i class="bi bi-arrows-fullscreen"></i>
                         </button>
                     </div>`;
             }
             
             popupContent += `
-                    <h5 class="pin-title">${pin.title} ${categoryBadge}</h5>`;
-            
-            // Add rating display
-            popupContent += `
-                <div class="stars-display">
-                    ${getStarsHtml(pin.average_rating)}
-                    <span class="review-count">(${pin.rating_count} ${pin.rating_count === 1 ? 'review' : 'reviews'})</span>
-                </div>
-                <p class="pin-description">${pin.description}</p>`;
+                    <div class="pin-header">
+                        <div class="pin-header-text">
+                            ${categoryBadge}
+                            <h5 class="pin-title">${pin.title}</h5>
+                        </div>
+                        <div class="pin-rating-chip">
+                            <div class="chip-stars">
+                                ${ratingStars}
+                            </div>
+                            <span class="pin-rating-count">${ratingSummary}</span>
+                        </div>
+                    </div>
+                    <p class="pin-description">${pinDescription}</p>`;
 
-            // Add amenities if available - add console.log to debug
-            console.log("Pin amenities:", {
-                has_seating: pin.has_seating, 
-                is_scenic: pin.is_scenic,
-                is_sheltered: pin.is_sheltered,
-                is_private: pin.is_private,
-                is_accessible: pin.is_accessible,
-                security_level: pin.security_level
-            });
+            const hasSeating = pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on';
+            const isScenic = pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on';
+            const isSheltered = pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on';
+            const isPrivate = pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on';
+            const isAccessible = pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on';
+            const limitedAccess = pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off';
+            const hasSecurityLevel = Boolean(pin.security_level);
+            const hasAmenities = hasSeating || isScenic || isSheltered || isPrivate || isAccessible || limitedAccess || hasSecurityLevel;
 
-            // Fix the condition check to handle both boolean and string values properly
-            if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on' || 
-                pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on' || 
-                pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on' || 
-                pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on' || 
-                pin.security_level > 1 || 
-                pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on' || 
-                pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
+            if (hasAmenities) {
+                popupContent += `
+                    <div class="pin-divider"></div>
+                    <p class="section-heading">Highlights</p>
+                    <div class="amenities-section mt-2 mb-2">`;
                 
-                popupContent += `<div class="amenities-section mt-2 mb-2">`;
-                
-                // Improved condition checks for each amenity
-                if (pin.security_level) {
+                if (hasSecurityLevel) {
                     const securityLabels = ['', 'Low', 'Medium', 'High'];
-                    const securityColors = ['', 'text-danger', 'text-warning', 'text-success'];
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Discretion level">
-                            <i class="bi bi-shield-lock ${securityColors[pin.security_level]}"></i> 
+                            <i class="bi bi-shield-lock"></i> 
                             ${securityLabels[pin.security_level]} discretion
                         </span>`;
                 }
                 
-                if (pin.has_seating === true || pin.has_seating === 'true' || pin.has_seating === 'on') {
+                if (hasSeating) {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Has seating">
                             <i class="bi bi-chair text-success"></i> Seating
                         </span>`;
                 }
                 
-                if (pin.is_scenic === true || pin.is_scenic === 'true' || pin.is_scenic === 'on') {
+                if (isScenic) {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Scenic views">
                             <i class="bi bi-image text-success"></i> Scenic
                         </span>`;
                 }
                 
-                if (pin.is_sheltered === true || pin.is_sheltered === 'true' || pin.is_sheltered === 'on') {
+                if (isSheltered) {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Sheltered from elements">
                             <i class="bi bi-umbrella text-success"></i> Sheltered
                         </span>`;
                 }
                 
-                if (pin.is_private === true || pin.is_private === 'true' || pin.is_private === 'on') {
+                if (isPrivate) {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Private spot">
                             <i class="bi bi-eye-slash text-success"></i> Private
                         </span>`;
                 }
                 
-                if (pin.is_accessible === true || pin.is_accessible === 'true' || pin.is_accessible === 'on') {
+                if (isAccessible) {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Accessibility">
                             <i class="bi bi-universal-access text-success"></i> Accessible
                         </span>`;
-                } else if (pin.is_accessible === false || pin.is_accessible === 'false' || pin.is_accessible === 'off') {
+                } else if (limitedAccess) {
                     popupContent += `
                         <span class="badge bg-light text-dark me-1 mb-1" title="Limited accessibility">
                             <i class="bi bi-universal-access-circle text-danger"></i> Limited access
@@ -1050,24 +1654,25 @@
             
             // Add buttons row
             popupContent += `
-                <div class="mt-2 mb-2">
+                <div class="pin-divider"></div>
+                <div class="pin-actions">
                     <a href="https://www.google.com/maps/dir/?api=1&destination=${pin.latitude},${pin.longitude}" 
-                        class="btn btn-sm btn-success text-white" target="_blank">
-                        <i class="bi bi-geo"></i> Get Directions
+                        class="pin-action-btn primary" target="_blank" rel="noopener">
+                        <i class="bi bi-compass"></i> <span>Navigate</span>
                     </a>
-                    <button class="btn btn-sm btn-info text-white show-reviews" data-pin="${pin.id}">
-                        <i class="bi bi-chat-left-text"></i> Show Reviews
+                    <button class="pin-action-btn secondary show-reviews" data-pin="${pin.id}">
+                        <i class="bi bi-chat-left-text"></i> <span>Reviews</span>
                     </button>`;
             
             // Add favorite button if user is authenticated
             if (isAuthenticated) {
-                // Check if pin is favorited
-                const isFavorite = pin.is_favorite ? true : false;
-                const favBtnClass = isFavorite ? 'btn-danger' : 'btn-outline-danger';
+                const isFavorite = Boolean(pin.is_favorite);
                 const favIcon = isFavorite ? 'bi-heart-fill' : 'bi-heart';
+                const favClass = isFavorite ? 'is-favorite' : '';
+                const favLabel = isFavorite ? 'Remove from favorites' : 'Save to favorites';
                 
                 popupContent += `
-                    <button class="btn btn-sm ${favBtnClass} favorite-pin" data-pin="${pin.id}">
+                    <button class="pin-icon-btn favorite-pin ${favClass}" data-pin="${pin.id}" aria-label="${favLabel}">
                         <i class="bi ${favIcon}"></i>
                     </button>`;
             }
@@ -1075,14 +1680,17 @@
             // Add delete button only if the current user is the pin owner
             if (isAuthenticated && pin.username === currentUsername) {
                 popupContent += `
-                    <button class="btn btn-sm btn-danger text-white delete-pin" data-pin="${pin.id}">
-                        <i class="bi bi-trash"></i> Delete Pin
+                    <button class="pin-icon-btn delete-pin" data-pin="${pin.id}" aria-label="Delete pin">
+                        <i class="bi bi-trash"></i>
                     </button>`;
             }
             
             popupContent += `
                 </div>
-                <small class="pin-author">Added by: <a href="/profile/${pin.username}/" class="username-link">${pin.username}</a></small>`;
+                <div class="pin-footer">
+                    <span class="pin-author-label">Shared by</span>
+                    <a href="/profile/${pin.username}/" class="username-link">@${pin.username}</a>
+                </div>`;
             
             // Add review form if user is authenticated
             if (isAuthenticated) {
@@ -1440,6 +2048,12 @@
                     
                     // Clear form
                     document.getElementById('addPinForm').reset();
+
+                    // Remove any temporary placement marker
+                    if (pinPlacementMarker) {
+                        map.removeLayer(pinPlacementMarker);
+                        pinPlacementMarker = null;
+                    }
                 })
                 .catch(error => {
                     console.error('Error saving pin:', error);
@@ -1470,15 +2084,16 @@
         }
 
         function onMapClick(e) {
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
-            
-            // If a marker already exists, just update its position
+            setPinLocation(e.latlng);
+        }
+
+        function setPinLocation(latlng) {
+            const coords = L.latLng(latlng.lat, latlng.lng);
+
             if (pinPlacementMarker) {
-                pinPlacementMarker.setLatLng(e.latlng);
+                pinPlacementMarker.setLatLng(coords);
             } else {
-                // Create a new marker for pin placement
-                pinPlacementMarker = L.marker(e.latlng, {
+                pinPlacementMarker = L.marker(coords, {
                     icon: L.divIcon({
                         className: 'pin-placement-marker',
                         html: '<i class="bi bi-pin-fill"></i>',
@@ -1487,10 +2102,48 @@
                     })
                 }).addTo(map);
             }
-            
-            // Update the hidden latitude and longitude fields
-            document.getElementById('pinLatitude').value = lat;
-            document.getElementById('pinLongitude').value = lng;
+
+            document.getElementById('pinLatitude').value = coords.lat;
+            document.getElementById('pinLongitude').value = coords.lng;
+        }
+
+        function placePinAtCurrentLocation(buttonEl) {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+
+            if (buttonEl) {
+                buttonEl.classList.add('loading');
+            }
+
+            navigator.geolocation.getCurrentPosition(function(position) {
+                if (buttonEl) {
+                    buttonEl.classList.remove('loading');
+                }
+
+                const coords = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                map.setView(coords, 16);
+                setPinLocation(coords);
+
+                if (pinPlacementMode) {
+                    togglePinPlacementMode();
+                }
+
+                modal.show();
+            }, function(error) {
+                if (buttonEl) {
+                    buttonEl.classList.remove('loading');
+                }
+                alert("Couldn't fetch your location: " + error.message);
+            }, {
+                enableHighAccuracy: true,
+                timeout: 10000
+            });
         }
     });
 </script>

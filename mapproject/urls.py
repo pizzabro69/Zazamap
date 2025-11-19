@@ -15,14 +15,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve as static_serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('mapapp.urls')),
 ]
 
-# Always serve media files (not just in debug mode)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Always serve media files, even when DEBUG is False (development convenience)
+if settings.MEDIA_URL:
+    media_pattern = settings.MEDIA_URL.lstrip('/')
+    urlpatterns.append(
+        re_path(r'^%s(?P<path>.*)$' % media_pattern, static_serve, {'document_root': settings.MEDIA_ROOT})
+    )

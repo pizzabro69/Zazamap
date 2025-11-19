@@ -60,6 +60,62 @@
             font-size: 0.9rem;
         }
     }
+
+    /* Favorites tab cards */
+    #favorites-content .card {
+        background-color: #365445;
+        border: 1px solid #548f6f;
+        color: #f4ffe1;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    #favorites-content .card-img-top {
+        max-height: 180px;
+        object-fit: cover;
+    }
+
+    #favorites-content .card-title {
+        color: #cbff78;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    #favorites-content .badge-category {
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.75rem;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    #favorites-content .badge-dispensary {
+        background-color: #99e81a;
+        color: #1c3326;
+    }
+
+    #favorites-content .badge-smoke {
+        background-color: #548f6f;
+        color: #f4ffe1;
+    }
+
+    #favorites-content .card-text {
+        color: #d6ecd6;
+    }
+
+    #favorites-content .btn-view-map {
+        border-color: #99e81a;
+        color: #99e81a;
+        background-color: transparent;
+        border-radius: 999px;
+        font-weight: 500;
+    }
+
+    #favorites-content .btn-view-map:hover {
+        background-color: rgba(153, 232, 26, 0.15);
+        color: #cbff78;
+    }
 </style>
 {% endblock %}
 
@@ -262,17 +318,17 @@
                     favorites.forEach(pin => {
                         html += `
                             <div class="col-md-6 mb-3">
-                                <div class="card h-100">
+                                <div class="card h-100 favorite-card">
                                     ${pin.image ? `<img src="${pin.image}" class="card-img-top" alt="${pin.title}">` : ''}
                                     <div class="card-body">
                                         <h5 class="card-title">
                                             ${pin.title}
                                             ${pin.category === 'dispensary' 
-                                                ? `<span class="badge bg-success"><i class="bi bi-shop"></i> Dispensary</span>`
-                                                : `<span class="badge bg-primary"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`}
+                                                ? `<span class="badge badge-category badge-dispensary"><i class="bi bi-shop"></i> Dispensary</span>`
+                                                : `<span class="badge badge-category badge-smoke"><i class="bi bi-emoji-smile"></i> Smoke Spot</span>`}
                                         </h5>
                                         <p class="card-text">${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}</p>
-                                        <button class="btn btn-sm btn-outline-primary view-on-map" data-lat="${pin.latitude}" data-lng="${pin.longitude}" data-id="${pin.id}">
+                                        <button class="btn btn-sm btn-view-map view-on-map" data-lat="${pin.latitude}" data-lng="${pin.longitude}" data-id="${pin.id}">
                                             <i class="bi bi-map"></i> View on Map
                                         </button>
                                     </div>
